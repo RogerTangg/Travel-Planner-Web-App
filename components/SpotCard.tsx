@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Spot, SpotCategory } from '../types';
-import { MapPin, Clock, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown } from 'lucide-react';
+import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { TimePicker } from './TimePicker';
@@ -258,52 +258,18 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
             />
           </div>
 
-          {/* Category & Time */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[10px] font-medium text-gray-500 mb-1 block">類別</label>
-              <select
-                value={editForm.category}
-                onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value as SpotCategory }))}
-                className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none"
-              >
-                {CATEGORY_OPTIONS.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-medium text-gray-500 mb-1 block">停留時間</label>
-              <input
-                type="text"
-                value={editForm.suggestedTime}
-                onChange={(e) => setEditForm(prev => ({ ...prev, suggestedTime: e.target.value }))}
-                placeholder="60 分鐘"
-                className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Coordinates */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[10px] font-medium text-gray-500 mb-1 block">緯度 (Lat)</label>
-              <input
-                type="text"
-                value={editForm.lat}
-                onChange={(e) => setEditForm(prev => ({ ...prev, lat: e.target.value }))}
-                className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none font-mono"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] font-medium text-gray-500 mb-1 block">經度 (Lng)</label>
-              <input
-                type="text"
-                value={editForm.lng}
-                onChange={(e) => setEditForm(prev => ({ ...prev, lng: e.target.value }))}
-                className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none font-mono"
-              />
-            </div>
+          {/* Category */}
+          <div>
+            <label className="text-[10px] font-medium text-gray-500 mb-1 block">類別</label>
+            <select
+              value={editForm.category}
+              onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value as SpotCategory }))}
+              className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none"
+            >
+              {CATEGORY_OPTIONS.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
           </div>
 
           {/* Tags */}
@@ -385,13 +351,6 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
               onChange={(val) => handleUpdate({ endTime: val })}
               label="結束時間"
             />
-
-            {/* Duration */}
-            {durationDisplay && (
-              <span className="text-[9px] text-gray-400 ml-1 whitespace-nowrap">
-                ({durationDisplay})
-              </span>
-            )}
           </div>
         )}
 
@@ -416,7 +375,7 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
 
           {/* Tags */}
           {spot.tags && spot.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
+            <div className="flex flex-wrap gap-1 mt-1.5 pt-1.5 border-t border-gray-50">
               {spot.tags.map(tag => (
                 <span
                   key={tag}
@@ -430,18 +389,9 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
           )}
 
           {/* Actions/Footer */}
-          <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-2">
-            <div className="flex items-center gap-2 flex-1">
-              {durationDisplay && (
-                <span className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md" title="建議停留時間">
-                  <Clock size={10} />
-                  {durationDisplay}
-                </span>
-              )}
-            </div>
-
+          <div className="mt-2 flex items-center justify-end">
             {/* Action Buttons */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button 
                 onClick={(e) => {
                   stopPropagation(e);

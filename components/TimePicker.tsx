@@ -209,11 +209,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           flex items-center justify-center transition-all duration-200
           ${value
             ? 'text-gray-800 hover:text-sakura-600' 
-            : 'px-1.5 py-1 rounded border border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500'
+            : 'px-1.5 py-0.5 rounded border border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500'
           }
         `}
       >
-        <span className={`font-mono ${value ? 'text-sm font-bold' : 'text-xs'}`}>
+        <span className={`font-mono ${value ? 'text-sm font-bold' : 'text-[11px]'}`}>
           {value || '--:--'}
         </span>
       </button>
