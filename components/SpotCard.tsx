@@ -354,66 +354,63 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
       style={style}
       {...attributes} 
       {...listeners}
-      className={`group relative bg-white rounded-xl border transition-all duration-200 mb-3 overflow-hidden select-none touch-none
+      className={`group relative bg-white rounded-lg border transition-all duration-200 mb-2 overflow-hidden select-none touch-none
         ${isOverlay ? 'shadow-2xl ring-2 ring-sakura-300 rotate-2 cursor-grabbing z-50' : 'shadow-sm hover:shadow-md border-gray-100 hover:border-sakura-200 cursor-grab active:cursor-grabbing'}
         ${spot.isManual ? 'border-l-4 border-l-amber-400' : ''}
       `}
       onClick={() => onClick(spot)}
     >
-      <div className="p-3 flex gap-3">
-        {/* Time Column (Only in Timeline) - Clean Design */}
+      <div className="px-3 py-2 flex items-center gap-3">
+        {/* Time Column (Only in Timeline) - Compact Design */}
         {!compact && (
-          <div className="flex flex-col items-center w-[60px] flex-shrink-0 border-r border-gray-100 pr-2">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {/* Drag Handle */}
-            <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mb-1.5">
+            <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mr-1">
               <GripVertical size={14} />
             </div>
             
-            {/* Start Time Picker */}
+            {/* Start Time */}
             <TimePicker
               value={spot.startTime || ''}
               onChange={(val) => handleUpdate({ startTime: val })}
               label="開始時間"
             />
 
-            {/* Duration Connector */}
-            <div className="flex flex-col items-center py-1 my-0.5">
-              <div className="w-px h-1.5 bg-gray-200"></div>
-              {durationDisplay && (
-                <div className="text-[8px] text-gray-500 my-0.5 whitespace-nowrap bg-gray-100 px-1.5 py-0.5 rounded">
-                  {durationDisplay}
-                </div>
-              )}
-              <div className="w-px h-1.5 bg-gray-200"></div>
-            </div>
+            {/* Separator */}
+            <span className="text-gray-300 text-xs">-</span>
 
-            {/* End Time Picker */}
+            {/* End Time */}
             <TimePicker
               value={spot.endTime || displayEndTime || ''}
               onChange={(val) => handleUpdate({ endTime: val })}
               label="結束時間"
             />
+
+            {/* Duration */}
+            {durationDisplay && (
+              <span className="text-[9px] text-gray-400 ml-1 whitespace-nowrap">
+                ({durationDisplay})
+              </span>
+            )}
           </div>
         )}
 
         {/* Main Content */}
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex justify-between items-start gap-2">
-            <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-gray-800 text-sm truncate leading-tight pt-0.5">
-                {spot.name}
-                {spot.isManual && <span className="ml-1 text-[10px] text-amber-500">(手動)</span>}
-              </h4>
-            </div>
-            <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 font-medium ${getCategoryColor(spot.category)}`}>
+          <div className="flex justify-between items-center gap-2">
+            <h4 className="font-bold text-gray-800 text-sm truncate">
+              {spot.name}
+              {spot.isManual && <span className="ml-1 text-[10px] text-amber-500">(手動)</span>}
+            </h4>
+            <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full border flex items-center gap-0.5 font-medium ${getCategoryColor(spot.category)}`}>
               {getIcon(spot.category)}
-              <span className="truncate max-w-[60px]">{spot.category}</span>
+              <span className="truncate max-w-[50px]">{spot.category}</span>
             </span>
           </div>
           
-          {/* Description */}
-          <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed tracking-wide">
+          {/* Description - Single Line */}
+          <p className="text-[11px] text-gray-500 truncate leading-relaxed">
             {spot.description}
           </p>
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Clock, ChevronUp, ChevronDown, Sun, Sunset, Moon } from 'lucide-react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 interface TimePickerProps {
   value: string;
@@ -8,13 +8,6 @@ interface TimePickerProps {
   label?: string;
   className?: string;
 }
-
-// Period presets for quick selection
-const PERIOD_PRESETS = [
-  { label: '早晨', icon: Sun, times: ['07:00', '08:00', '09:00', '10:00'], color: 'bg-amber-500' },
-  { label: '午後', icon: Sunset, times: ['12:00', '13:00', '14:00', '15:00'], color: 'bg-orange-500' },
-  { label: '傍晚', icon: Moon, times: ['17:00', '18:00', '19:00', '20:00'], color: 'bg-indigo-500' },
-];
 
 export const TimePicker: React.FC<TimePickerProps> = ({
   value,
@@ -42,8 +35,8 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   useEffect(() => {
     if (isOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      const dropdownWidth = 280;
-      const dropdownHeight = 380;
+      const dropdownWidth = 200;
+      const dropdownHeight = 220;
       
       let left = rect.left + rect.width / 2 - dropdownWidth / 2;
       let top = rect.bottom + 8;
@@ -95,14 +88,6 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     setIsOpen(false);
   };
 
-  const handleQuickSelect = (time: string) => {
-    const [h, m] = time.split(':').map(Number);
-    setHours(h);
-    setMinutes(m);
-    onChange(time);
-    setIsOpen(false);
-  };
-
   const adjustHours = (delta: number) => {
     setHours(prev => {
       const newVal = prev + delta;
@@ -121,16 +106,6 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     });
   };
 
-  // Get period indicator based on hour
-  const getPeriodInfo = (h: number) => {
-    if (h >= 5 && h < 12) return { text: '上午', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
-    if (h >= 12 && h < 17) return { text: '下午', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
-    if (h >= 17 && h < 21) return { text: '傍晚', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
-    return { text: '夜間', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
-  };
-
-  const periodInfo = value ? getPeriodInfo(parseInt(value.split(':')[0])) : null;
-
   const handleTriggerClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -142,23 +117,10 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     <div
       ref={dropdownRef}
       className="fixed z-[9999] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-      style={{ top: dropdownPos.top, left: dropdownPos.left, width: 240 }}
+      style={{ top: dropdownPos.top, left: dropdownPos.left, width: 200 }}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      {/* Header */}
-      <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-600">{label || '選擇時間'}</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
-            {getPeriodInfo(hours).text}
-          </span>
-        </div>
-        <div className="text-2xl font-bold font-mono mt-1 text-gray-800">
-          {formatTime(hours, minutes)}
-        </div>
-      </div>
-
       {/* Time Selector */}
       <div className="p-3">
         <div className="flex items-center justify-center gap-3">
@@ -213,34 +175,6 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           </div>
         </div>
 
-        {/* Quick Select */}
-        <div className="mt-3 space-y-1.5">
-          {PERIOD_PRESETS.map((period) => (
-            <div key={period.label} className="flex items-center gap-1.5">
-              <div className="w-12 flex items-center gap-1 text-[9px] font-medium text-gray-500">
-                <period.icon size={10} />
-                {period.label}
-              </div>
-              <div className="flex-1 grid grid-cols-4 gap-1">
-                {period.times.map((time) => (
-                  <button
-                    key={time}
-                    type="button"
-                    onClick={() => handleQuickSelect(time)}
-                    className={`py-1 text-[10px] font-medium rounded transition-all
-                      ${formatTime(hours, minutes) === time 
-                        ? `${period.color} text-white` 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* Actions */}
         <div className="flex gap-2 mt-3 pt-2 border-t border-gray-100">
           <button
@@ -272,15 +206,14 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         onClick={handleTriggerClick}
         onPointerDown={(e) => e.stopPropagation()}
         className={`
-          flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border transition-all duration-200 min-w-[60px]
+          flex items-center justify-center transition-all duration-200
           ${value
-            ? 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300' 
-            : 'bg-gray-50 border-gray-200 text-gray-400 hover:border-gray-300'
+            ? 'text-gray-800 hover:text-sakura-600' 
+            : 'px-1.5 py-1 rounded border border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500'
           }
         `}
       >
-        <Clock size={12} className="flex-shrink-0 text-gray-400" />
-        <span className="text-xs font-mono font-medium">
+        <span className={`font-mono ${value ? 'text-sm font-bold' : 'text-xs'}`}>
           {value || '--:--'}
         </span>
       </button>
