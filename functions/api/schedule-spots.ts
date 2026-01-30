@@ -56,7 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const ai = new GoogleGenAI({ apiKey: context.env.GEMINI_API_KEY });
 
     const prompt = `
-你是一位擁有 20 年經驗的專業旅遊行程規劃師。你的任務是將「所有」待安排景點智慧地分配到各個旅遊天數中。
+你是一位擁有 20 年經驗的專業旅遊行程規劃師。你的任務是將「所有」待安排景點智慧地分配到各個旅遊天數中，並為每個景點安排具體的開始時間。
 
 ## 📍 待安排景點清單（必須全部分配）
 ${JSON.stringify(sanitizedSpots, null, 2)}
@@ -65,42 +65,40 @@ ${JSON.stringify(sanitizedSpots, null, 2)}
 ${JSON.stringify(sanitizedDays, null, 2)}
 
 ## ⚡ 核心要求（最高優先級）
-1. **必須分配所有景點** - 每個景點都必須被分配到某一天，不可遺漏任何景點
-2. **使用原始 ID** - spotIds 必須使用上方景點清單中的原始 id 值
-3. **不可重複分配** - 每個景點只能出現在一天中
+1. **必須分配所有景點** - 每個景點都必須被分配到某一天
+2. **必須安排開始時間** - 每個景點都必須有具體的 startTime（格式 HH:MM）
+3. **使用原始 ID** - spotIds 必須使用上方景點清單中的原始 id 值
 
 ## 🧠 排程邏輯
 
-### 地理群聚（同區域景點安排在同一天）
-- 經緯度差異 < 0.02（約2公里）的景點視為同區域
-- 同區域景點優先安排在同一天以減少交通時間
+### 時段安排（必須遵守）
+根據景點類別分配合適的時段：
+- 通勤/車站：08:00-09:00（當天起點）
+- 神社寺廟/公園/景點：09:00-12:00（戶外活動）
+- 餐廳（午餐）：12:00-13:30
+- 博物館/購物：14:00-17:00（室內活動）
+- 咖啡廳：15:00-16:00（下午休息）
+- 購物：17:00-19:00（傍晚）
+- 餐廳（晚餐）：19:00-20:30
+- 酒吧：21:00-22:30（晚間）
+- 飯店：22:00-23:00（最後）
 
-### 每日時段安排順序
-1. 上午 (09:00-12:00)：通勤/車站出發 → 戶外景點（神社、公園）
-2. 中午 (12:00-14:00)：餐廳午餐
-3. 下午 (14:00-17:00)：博物館/購物/室內景點
-4. 傍晚 (17:00-19:00)：購物/咖啡廳
-5. 晚間 (19:00-21:00)：餐廳晚餐 → 酒吧
-6. 最後：飯店（必須放在當天最後）
-
-### 類型分配建議
-- 每天 2-4 個主要景點
-- 每天 1-2 間餐廳（午餐+晚餐）
-- 咖啡廳作為休息點，每天 0-1 間
-- 購物安排在下午或傍晚
-- 酒吧僅限晚間
-- 飯店僅在入住日，放最後
+### 地理群聚
+- 經緯度差異 < 0.02 的景點安排在同一天
+- 同區域景點連續安排以減少交通時間
 
 ### 負載均衡
-- 根據 currentSpotsCount 優先分配到景點較少的天數
-- 目標：各天景點數量差異 ≤ 2
+- 每天 4-6 個景點為佳
+- 優先分配到景點較少的天數
 
 ## 📤 輸出格式
 返回 JSON 陣列，每個元素包含：
-- dayId: 天數 ID（使用提供的 dayId）
-- spotIds: 該天的景點 ID 陣列，按遊覽順序排列
+- dayId: 天數 ID
+- spots: 景點陣列，每個景點包含：
+  - id: 景點 ID
+  - startTime: 開始時間（格式 "HH:MM"，如 "09:00"）
 
-**重要提醒：必須確保所有 ${sanitizedSpots.length} 個景點都被分配！**
+**重要：必須確保所有 ${sanitizedSpots.length} 個景點都被分配並有開始時間！**
     `;
 
     const response = await ai.models.generateContent({
@@ -114,13 +112,20 @@ ${JSON.stringify(sanitizedDays, null, 2)}
             type: Type.OBJECT,
             properties: {
               dayId: { type: Type.STRING, description: "天數 ID" },
-              spotIds: { 
+              spots: { 
                 type: Type.ARRAY, 
-                items: { type: Type.STRING },
-                description: "分配到該天的景點 ID 列表，順序為建議遊覽順序"
+                items: { 
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING, description: "景點 ID" },
+                    startTime: { type: Type.STRING, description: "開始時間，格式 HH:MM" }
+                  },
+                  required: ["id", "startTime"]
+                },
+                description: "分配到該天的景點列表，含開始時間"
               }
             },
-            required: ["dayId", "spotIds"]
+            required: ["dayId", "spots"]
           },
           description: "各天的景點分配結果"
         }

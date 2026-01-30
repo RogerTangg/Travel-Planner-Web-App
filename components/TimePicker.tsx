@@ -18,7 +18,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [hours, setHours] = useState(9);
   const [minutes, setMinutes] = useState(0);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -35,11 +35,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   useEffect(() => {
     if (isOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      const dropdownWidth = 200;
-      const dropdownHeight = 220;
+      const dropdownWidth = 180;
+      const dropdownHeight = 200;
       
       let left = rect.left + rect.width / 2 - dropdownWidth / 2;
-      let top = rect.bottom + 8;
+      let top = rect.bottom + 4;
       
       // Adjust if too far right
       if (left + dropdownWidth > window.innerWidth - 10) {
@@ -50,10 +50,12 @@ export const TimePicker: React.FC<TimePickerProps> = ({
       
       // Adjust if too low (show above instead)
       if (top + dropdownHeight > window.innerHeight - 10) {
-        top = rect.top - dropdownHeight - 8;
+        top = rect.top - dropdownHeight - 4;
       }
       
       setDropdownPos({ top, left });
+    } else {
+      setDropdownPos(null);
     }
   }, [isOpen]);
 
@@ -106,88 +108,100 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     });
   };
 
+  const handleHoursInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value) || 0;
+    setHours(Math.max(0, Math.min(23, val)));
+  };
+
+  const handleMinutesInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value) || 0;
+    setMinutes(Math.max(0, Math.min(59, val)));
+  };
+
   const handleTriggerClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsOpen(!isOpen);
   };
 
-  // Dropdown rendered via Portal
-  const dropdown = isOpen && createPortal(
+  // Dropdown rendered via Portal - only render when position is calculated
+  const dropdown = isOpen && dropdownPos && createPortal(
     <div
       ref={dropdownRef}
-      className="fixed z-[9999] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-      style={{ top: dropdownPos.top, left: dropdownPos.left, width: 200 }}
+      className="fixed z-[9999] bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+      style={{ top: dropdownPos.top, left: dropdownPos.left, width: 180 }}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Time Selector */}
       <div className="p-3">
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-2">
           {/* Hours */}
           <div className="flex flex-col items-center">
             <button
               type="button"
               onClick={() => adjustHours(1)}
-              className="w-10 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
+              className="w-8 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
             >
-              <ChevronUp size={18} />
+              <ChevronUp size={16} />
             </button>
-            <div className="w-12 h-10 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
-              <span className="text-xl font-bold text-gray-800 font-mono">
-                {hours.toString().padStart(2, '0')}
-              </span>
-            </div>
+            <input
+              type="text"
+              value={hours.toString().padStart(2, '0')}
+              onChange={handleHoursInput}
+              className="w-10 h-8 text-center text-lg font-bold text-gray-800 font-mono bg-gray-50 rounded border border-gray-200 focus:outline-none focus:border-sakura-400"
+              maxLength={2}
+            />
             <button
               type="button"
               onClick={() => adjustHours(-1)}
-              className="w-10 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
+              className="w-8 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
             >
-              <ChevronDown size={18} />
+              <ChevronDown size={16} />
             </button>
-            <span className="text-[9px] text-gray-400 mt-0.5">時</span>
           </div>
 
-          <span className="text-xl font-bold text-gray-300 mb-4">:</span>
+          <span className="text-lg font-bold text-gray-300">:</span>
 
           {/* Minutes */}
           <div className="flex flex-col items-center">
             <button
               type="button"
               onClick={() => adjustMinutes(5)}
-              className="w-10 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
+              className="w-8 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
             >
-              <ChevronUp size={18} />
+              <ChevronUp size={16} />
             </button>
-            <div className="w-12 h-10 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
-              <span className="text-xl font-bold text-gray-800 font-mono">
-                {minutes.toString().padStart(2, '0')}
-              </span>
-            </div>
+            <input
+              type="text"
+              value={minutes.toString().padStart(2, '0')}
+              onChange={handleMinutesInput}
+              className="w-10 h-8 text-center text-lg font-bold text-gray-800 font-mono bg-gray-50 rounded border border-gray-200 focus:outline-none focus:border-sakura-400"
+              maxLength={2}
+            />
             <button
               type="button"
               onClick={() => adjustMinutes(-5)}
-              className="w-10 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
+              className="w-8 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
             >
-              <ChevronDown size={18} />
+              <ChevronDown size={16} />
             </button>
-            <span className="text-[9px] text-gray-400 mt-0.5">分</span>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 mt-3 pt-2 border-t border-gray-100">
+        <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
           <button
             type="button"
             onClick={handleClear}
-            className="flex-1 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors font-medium"
+            className="flex-1 px-2 py-1 text-[11px] bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors font-medium"
           >
             清除
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="flex-1 px-3 py-1.5 text-xs bg-sakura-500 hover:bg-sakura-600 text-white rounded-lg transition-colors font-medium"
+            className="flex-1 px-2 py-1 text-[11px] bg-sakura-500 hover:bg-sakura-600 text-white rounded transition-colors font-medium"
           >
             確定
           </button>

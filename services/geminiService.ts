@@ -72,7 +72,7 @@ export const extractSpotsFromText = async (text: string): Promise<string[]> => {
 export const scheduleUnscheduledSpots = async (
   unscheduledSpots: Spot[], 
   existingDays: { id: string; title: string; spotsCount: number }[]
-): Promise<{ dayId: string; spotIds: string[] }[]> => {
+): Promise<{ dayId: string; spots: { id: string; startTime: string }[] }[]> => {
   if (unscheduledSpots.length === 0) return [];
 
   try {
@@ -94,7 +94,7 @@ export const scheduleUnscheduledSpots = async (
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json() as { dayId: string; spotIds: string[] }[];
+    return await response.json() as { dayId: string; spots: { id: string; startTime: string }[] }[];
 
   } catch (error) {
     console.error("AI Scheduling Error:", error);

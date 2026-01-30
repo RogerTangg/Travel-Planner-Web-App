@@ -64,12 +64,12 @@ interface ConfirmState {
 
 // --- Helper Components ---
 const LoadingOverlay = ({ text = 'AI 優化中...' }: { text?: string }) => (
-  <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-50 flex items-center justify-center rounded-2xl">
-    <div className="flex flex-col items-center animate-pulse">
-      <div className="bg-white p-3 rounded-full shadow-lg border border-sakura-100 mb-2">
+  <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-50 flex items-center justify-center rounded-2xl">
+    <div className="flex flex-col items-center">
+      <div className="bg-white p-3 rounded-full shadow-lg border border-sakura-100 mb-2 animate-pulse">
         <Sparkles className="text-sakura-500" size={20} />
       </div>
-      <span className="text-sakura-500 font-bold text-xs tracking-wide">{text}</span>
+      <span className="text-sakura-500 font-bold text-xs">{text}</span>
     </div>
   </div>
 );
@@ -309,6 +309,28 @@ const App: React.FC = () => {
     isLoading: false
   });
 
+  const handleAddQuickModule = (category: SpotCategory, label: string) => {
+    if (!currentTrip) return;
+    
+    const newSpot: Spot = {
+      id: crypto.randomUUID(),
+      name: `新${label}`,
+      description: `請編輯此${label}的詳細資訊`,
+      category: category,
+      coordinates: { lat: 35.6895, lng: 139.6917 },
+      suggestedTime: category === SpotCategory.COMMUTE ? "30 分鐘" : 
+                     category === SpotCategory.FOOD ? "90 分鐘" :
+                     category === SpotCategory.MUSEUM ? "120 分鐘" : "60 分鐘",
+      isManual: true,
+      isLoading: false
+    };
+    
+    updateCurrentTrip(trip => ({
+      ...trip,
+      unscheduledSpots: [newSpot, ...trip.unscheduledSpots]
+    }));
+  };
+
   const analyzeAndFillSpot = async (id: string, name: string) => {
     const analysis = await analyzeSpotWithAI(name);
     
@@ -466,11 +488,16 @@ const App: React.FC = () => {
           const daySchedule = schedule.find(s => s.dayId === day.id);
           if (!daySchedule) return day;
 
-          const spotsToAdd = daySchedule.spotIds
-            .filter(id => spotMap.has(id) && !assignedIds.has(id))
-            .map(id => {
-              assignedIds.add(id);
-              return spotMap.get(id)!;
+          const spotsToAdd = daySchedule.spots
+            .filter(item => spotMap.has(item.id) && !assignedIds.has(item.id))
+            .map(item => {
+              assignedIds.add(item.id);
+              const spot = spotMap.get(item.id)!;
+              // Apply the scheduled startTime
+              return {
+                ...spot,
+                startTime: item.startTime || spot.startTime
+              };
             });
 
           return {
@@ -787,6 +814,36 @@ const App: React.FC = () => {
             </div>
           </form>
           
+          {/* Quick Module Tags */}
+          <div className="mb-3 p-2 bg-gray-50 rounded-xl">
+            <div className="flex items-center gap-1 mb-2">
+              <Sparkles size={12} className="text-sakura-400" />
+              <span className="text-[10px] font-medium text-gray-500">快速新增模組</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: '景點', icon: '🏛️', category: SpotCategory.SIGHTSEEING },
+                { label: '交通', icon: '🚃', category: SpotCategory.COMMUTE },
+                { label: '餐飲', icon: '🍜', category: SpotCategory.FOOD },
+                { label: '購物', icon: '🛍️', category: SpotCategory.SHOPPING },
+                { label: '住宿', icon: '🏨', category: SpotCategory.HOTEL },
+                { label: '文化', icon: '🎨', category: SpotCategory.MUSEUM },
+                { label: '娛樂', icon: '🎢', category: SpotCategory.ENTERTAINMENT },
+                { label: '自然', icon: '🌳', category: SpotCategory.PARK },
+              ].map(module => (
+                <button
+                  key={module.label}
+                  type="button"
+                  onClick={() => handleAddQuickModule(module.category, module.label)}
+                  className="flex items-center gap-1 px-2 py-1 bg-white rounded-lg border border-gray-200 text-[11px] font-medium text-gray-600 hover:border-sakura-300 hover:bg-sakura-50 hover:text-sakura-600 transition-all shadow-sm"
+                >
+                  <span>{module.icon}</span>
+                  <span>{module.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Tags Filter */}
           {allTags.length > 0 && (
             <div className="mb-3">
