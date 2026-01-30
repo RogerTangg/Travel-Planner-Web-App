@@ -848,7 +848,7 @@ const App: React.FC = () => {
                 <button
                   onClick={handleSmartSchedule}
                   disabled={isScheduling || currentTrip.unscheduledSpots.some(s => s.isLoading)}
-                  className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-sakura-400 to-sakura-500 text-white rounded-lg text-[10px] font-medium hover:shadow-md disabled:opacity-50 transition-all"
+                  className="flex items-center gap-1 px-2 py-1 bg-sakura-500 text-white rounded-lg text-[10px] font-medium hover:bg-sakura-600 hover:shadow-md disabled:opacity-50 transition-all"
                 >
                   <Sparkles size={10} />
                   智慧排程

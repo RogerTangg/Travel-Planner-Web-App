@@ -141,12 +141,16 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
 
   if (spot.isLoading) {
     return (
-      <div className="p-4 mb-3 bg-white/80 backdrop-blur-sm rounded-xl border border-sakura-200 shadow-sm animate-pulse">
-        <div className="flex gap-3">
-          <div className="w-10 h-10 rounded-full bg-sakura-100/50"></div>
-          <div className="flex-1 py-1">
-            <div className="h-4 bg-sakura-100/50 rounded w-3/4 mb-2"></div>
-            <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+      <div className="px-3 py-2 mb-2 bg-white rounded-lg border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 text-gray-300 text-sm font-mono">
+            <span>--:--</span>
+            <span>-</span>
+            <span>--:--</span>
+          </div>
+          <div className="flex-1">
+            <div className="h-4 bg-gray-100 rounded w-32 mb-1 animate-pulse"></div>
+            <div className="h-3 bg-gray-50 rounded w-48 animate-pulse"></div>
           </div>
         </div>
       </div>
