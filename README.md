@@ -64,7 +64,6 @@
 ### 資料儲存
 
 - **localStorage**：本地儲存行程資料
-- **Key**：`travel-planner-trips`
 
 ## 專案結構
 
