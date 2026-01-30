@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Spot } from '../types';
@@ -19,9 +19,28 @@ interface MapPreviewProps {
   selectedSpot: Spot | null;
 }
 
-// Component to handle map movement
+// Component to handle map resize and movement
 const MapController: React.FC<{ selectedSpot: Spot | null, spots: Spot[] }> = ({ selectedSpot, spots }) => {
   const map = useMap();
+
+  // Fix map size on mount and window resize
+  useEffect(() => {
+    // Invalidate size after a short delay to ensure container is fully rendered
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [map]);
 
   useEffect(() => {
     if (selectedSpot) {
@@ -42,16 +61,14 @@ const MapController: React.FC<{ selectedSpot: Spot | null, spots: Spot[] }> = ({
 };
 
 export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot }) => {
-  const mapRef = useRef<L.Map>(null);
-
   return (
     <div className="h-full w-full relative z-0">
        <MapContainer 
         center={[35.6895, 139.6917]} 
         zoom={13} 
         scrollWheelZoom={true}
-        ref={mapRef}
-        style={{ height: '100%', width: '100%' }}
+        className="h-full w-full"
+        style={{ height: '100%', width: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
