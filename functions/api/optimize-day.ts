@@ -40,7 +40,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash-lite",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
