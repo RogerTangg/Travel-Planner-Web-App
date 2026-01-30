@@ -20,7 +20,8 @@ import {
   Save,
   Tag,
   PenLine,
-  X
+  X,
+  Undo2
 } from 'lucide-react';
 import { 
   DndContext, 
@@ -543,6 +544,40 @@ const App: React.FC = () => {
     });
   };
 
+  // --- Collect all spots from schedule back to unscheduled ---
+  const handleCollectAllSpots = () => {
+    if (!currentTrip) return;
+    
+    const totalScheduledSpots = currentTrip.days.reduce((acc, d) => acc + d.spots.length, 0);
+    if (totalScheduledSpots === 0) return;
+    
+    setConfirmState({
+      isOpen: true,
+      title: '收回全部景點',
+      message: `確定要將所有 ${totalScheduledSpots} 個已排程景點收回至待安排清單嗎？`,
+      type: 'warning',
+      onConfirm: () => {
+        updateCurrentTrip(trip => {
+          // Collect all spots from all days
+          const allScheduledSpots = trip.days.flatMap(d => 
+            d.spots.map(spot => ({
+              ...spot,
+              startTime: undefined // Clear the scheduled time
+            }))
+          );
+          
+          return {
+            ...trip,
+            days: trip.days.map(d => ({ ...d, spots: [] })),
+            unscheduledSpots: [...allScheduledSpots, ...trip.unscheduledSpots]
+          };
+        });
+        setSelectedSpot(null);
+        setConfirmState(null);
+      }
+    });
+  };
+
 
 
   // --- Drag & Drop Logic ---
@@ -960,6 +995,16 @@ const App: React.FC = () => {
             <div className="text-xs text-gray-400">
               {currentTrip.days.reduce((acc, d) => acc + d.spots.length, 0)} 個行程點
             </div>
+            {currentTrip.days.reduce((acc, d) => acc + d.spots.length, 0) > 0 && (
+              <button
+                onClick={handleCollectAllSpots}
+                className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:border-amber-300 hover:text-amber-600 transition-all"
+                title="收回全部景點至待安排清單"
+              >
+                <Undo2 size={12} />
+                收回全部
+              </button>
+            )}
             <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
               <Save size={12} />
               自動儲存
