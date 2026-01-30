@@ -208,18 +208,21 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot }) =
         ))}
       </MapContainer>
       
-      {/* Map Legend */}
+      {/* Map Legend - Enlarged */}
       {spots.length > 0 && (
-        <div className="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur rounded-lg shadow-lg p-2 max-w-[140px]">
-          <div className="text-[9px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">圖例</div>
-          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-            {Array.from(new Set(spots.map(s => s.category))).slice(0, 6).map(cat => (
-              <div key={cat} className="flex items-center gap-1">
+        <div className="absolute bottom-4 left-4 z-[400] bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-100 p-3 min-w-[180px]">
+          <div className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-gradient-to-br from-sakura-400 to-sakura-500"></div>
+            地圖圖例
+          </div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+            {Array.from(new Set(spots.map(s => s.category))).slice(0, 8).map(cat => (
+              <div key={cat} className="flex items-center gap-2">
                 <div 
-                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
                   style={{ backgroundColor: getCategoryColor(cat) }}
                 />
-                <span className="text-[8px] text-gray-600 truncate">{cat}</span>
+                <span className="text-[11px] text-gray-700 font-medium truncate">{cat}</span>
               </div>
             ))}
           </div>
