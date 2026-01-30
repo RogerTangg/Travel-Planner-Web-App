@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Spot, SpotCategory } from '../types';
-import { MapPin, Clock, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, ShoppingBag, Building2, Torii, TreePine, Coffee, Wine, Gamepad2 } from 'lucide-react';
+import { MapPin, Clock, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -22,7 +22,7 @@ const getIcon = (category: SpotCategory) => {
     case SpotCategory.COMMUTE: return <Train size={14} />;
     case SpotCategory.SHOPPING: return <ShoppingBag size={14} />;
     case SpotCategory.MUSEUM: return <Building2 size={14} />;
-    case SpotCategory.SHRINE_TEMPLE: return <Torii size={14} />;
+    case SpotCategory.SHRINE_TEMPLE: return <Landmark size={14} />;
     case SpotCategory.PARK: return <TreePine size={14} />;
     case SpotCategory.ENTERTAINMENT: return <Gamepad2 size={14} />;
     case SpotCategory.CUSTOM: return <MapIcon size={14} />;
