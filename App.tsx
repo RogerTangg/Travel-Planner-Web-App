@@ -20,7 +20,6 @@ import {
   Save,
   Tag,
   PenLine,
-  ArrowUpDown,
   X
 } from 'lucide-react';
 import { 
@@ -155,7 +154,6 @@ const App: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isManualMode, setIsManualMode] = useState(false);
   const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
-  const [isSortingUnscheduled, setIsSortingUnscheduled] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -518,33 +516,7 @@ const App: React.FC = () => {
     });
   };
 
-  // --- Sort unscheduled spots by proximity ---
-  const handleSortUnscheduled = async () => {
-    if (!currentTrip || currentTrip.unscheduledSpots.length < 2) return;
-    
-    const loadingSpots = currentTrip.unscheduledSpots.filter(s => s.isLoading);
-    if (loadingSpots.length > 0) {
-      alert('請等待所有景點分析完成後再進行排序');
-      return;
-    }
 
-    setIsSortingUnscheduled(true);
-    
-    try {
-      const sortedIds = await optimizeDaySchedule(currentTrip.unscheduledSpots);
-      
-      updateCurrentTrip(trip => {
-        const spotMap = new Map(trip.unscheduledSpots.map(s => [s.id, s]));
-        const newSpots = sortedIds.map(id => spotMap.get(id)).filter(Boolean) as Spot[];
-        if (newSpots.length !== trip.unscheduledSpots.length) return trip;
-        return { ...trip, unscheduledSpots: newSpots };
-      });
-    } catch (error) {
-      console.error("Sort error:", error);
-    } finally {
-      setIsSortingUnscheduled(false);
-    }
-  };
 
   // --- Drag & Drop Logic ---
   const sensors = useSensors(
@@ -852,7 +824,7 @@ const App: React.FC = () => {
           className="flex-1 overflow-y-auto bg-gray-50/50 p-3 custom-scrollbar relative"
           active={activeId !== null}
         >
-          {(isScheduling || isSortingUnscheduled) && <LoadingOverlay text={isScheduling ? "AI 智慧排程中..." : "AI 排序中..."} />}
+          {isScheduling && <LoadingOverlay text="AI 智慧排程中..." />}
           
           <div className="flex items-center justify-between mb-3 px-1">
             <div className="flex items-center gap-2">
@@ -863,16 +835,6 @@ const App: React.FC = () => {
             
             {currentTrip.unscheduledSpots.length > 0 && (
               <div className="flex items-center gap-1">
-                {/* Sort Button */}
-                <button
-                  onClick={handleSortUnscheduled}
-                  disabled={isSortingUnscheduled || currentTrip.unscheduledSpots.length < 2 || currentTrip.unscheduledSpots.some(s => s.isLoading)}
-                  className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] font-medium hover:border-sakura-200 hover:text-sakura-500 disabled:opacity-50 transition-all"
-                  title="依地理位置排序"
-                >
-                  <ArrowUpDown size={10} />
-                </button>
-                
                 {/* Clear All Button */}
                 <button
                   onClick={handleClearUnscheduled}
