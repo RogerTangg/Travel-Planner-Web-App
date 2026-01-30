@@ -129,10 +129,14 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
   };
 
   const durationMinutes = useMemo(() => parseDuration(spot.suggestedTime), [spot.suggestedTime]);
-  const endTime = useMemo(() => {
+  
+  // Calculate display end time: use manual endTime or auto-calculate from startTime + duration
+  const displayEndTime = useMemo(() => {
+    if (spot.endTime) return spot.endTime;
     if (!spot.startTime || durationMinutes === 0) return null;
     return addMinutesToTime(spot.startTime, durationMinutes);
-  }, [spot.startTime, durationMinutes]);
+  }, [spot.endTime, spot.startTime, durationMinutes]);
+  
   const durationDisplay = useMemo(() => formatDurationDisplay(durationMinutes), [durationMinutes]);
 
   if (spot.isLoading) {
@@ -357,37 +361,38 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
       onClick={() => onClick(spot)}
     >
       <div className="p-3 flex gap-3">
-        {/* Time Column (Only in Timeline) - Enhanced & Larger */}
+        {/* Time Column (Only in Timeline) - Modern Design */}
         {!compact && (
-          <div className="flex flex-col items-center gap-1 w-20 flex-shrink-0 border-r border-gray-100 pr-3">
+          <div className="flex flex-col items-center w-[72px] flex-shrink-0 border-r border-gray-100 pr-2">
             {/* Drag Handle */}
-            <div className="text-gray-300 group-hover:text-sakura-300 transition-colors cursor-grab mb-1">
+            <div className="text-gray-300 group-hover:text-sakura-300 transition-colors cursor-grab mb-2">
               <GripVertical size={16} />
             </div>
             
-            {/* Start Time - Custom Picker */}
+            {/* Start Time Picker */}
             <TimePicker
               value={spot.startTime || ''}
               onChange={(val) => handleUpdate({ startTime: val })}
-              placeholder="--:--"
-              size="sm"
+              label="開始時間"
             />
 
-            {/* Duration indicator - Enhanced */}
-            <div className="flex flex-col items-center py-1">
-              <div className="w-0.5 h-3 bg-gradient-to-b from-sakura-300 to-sakura-400 rounded-full"></div>
+            {/* Duration Connector */}
+            <div className="flex flex-col items-center py-2 my-1">
+              <div className="w-0.5 h-2 bg-gradient-to-b from-sakura-300 to-sakura-400 rounded-full"></div>
               {durationDisplay && (
-                <div className="text-[9px] text-sakura-500 font-semibold my-1 whitespace-nowrap bg-sakura-50 px-1.5 py-0.5 rounded-full">
+                <div className="text-[9px] text-white font-bold my-1 whitespace-nowrap bg-gradient-to-r from-sakura-400 to-sakura-500 px-2 py-0.5 rounded-full shadow-sm">
                   {durationDisplay}
                 </div>
               )}
-              <div className="w-0.5 h-3 bg-gradient-to-b from-sakura-400 to-sakura-300 rounded-full"></div>
+              <div className="w-0.5 h-2 bg-gradient-to-b from-sakura-400 to-sakura-300 rounded-full"></div>
             </div>
 
-            {/* End Time (calculated) - Larger */}
-            <div className={`text-xs font-mono px-2 py-1 rounded-lg font-medium ${endTime ? 'text-gray-600 bg-gray-100' : 'text-gray-300 bg-gray-50'}`}>
-              {endTime || '--:--'}
-            </div>
+            {/* End Time Picker */}
+            <TimePicker
+              value={spot.endTime || displayEndTime || ''}
+              onChange={(val) => handleUpdate({ endTime: val })}
+              label="結束時間"
+            />
           </div>
         )}
 

@@ -1,38 +1,76 @@
 import React, { useEffect, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
-import { Spot } from '../types';
+import { Spot, SpotCategory } from '../types';
 
-// Fix Leaflet marker icons with optimized loading
-const defaultIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  iconSize: [25, 41]
-});
+// Category color mapping for markers
+const getCategoryColor = (category: SpotCategory): string => {
+  switch (category) {
+    case SpotCategory.FOOD: return '#F97316'; // orange
+    case SpotCategory.CAFE: return '#F59E0B'; // amber
+    case SpotCategory.BAR: return '#8B5CF6'; // violet
+    case SpotCategory.HOTEL: return '#3B82F6'; // blue
+    case SpotCategory.COMMUTE: return '#64748B'; // slate
+    case SpotCategory.SHOPPING: return '#EC4899'; // pink
+    case SpotCategory.MUSEUM: return '#6366F1'; // indigo
+    case SpotCategory.SHRINE_TEMPLE: return '#EF4444'; // red
+    case SpotCategory.PARK: return '#22C55E'; // green
+    case SpotCategory.ENTERTAINMENT: return '#06B6D4'; // cyan
+    case SpotCategory.CUSTOM: return '#A855F7'; // purple
+    default: return '#F43F5E'; // rose - sightseeing
+  }
+};
 
-const selectedIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  iconSize: [25, 41]
-});
+// Create custom colored marker icon
+const createColoredIcon = (color: string, isSelected: boolean) => {
+  const size = isSelected ? 36 : 28;
+  const shadowSize = isSelected ? 44 : 36;
+  
+  return L.divIcon({
+    html: `
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        background: ${isSelected ? `linear-gradient(135deg, ${color}, ${color}dd)` : color};
+        border: 3px solid white;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        box-shadow: ${isSelected ? '0 4px 12px rgba(0,0,0,0.4)' : '0 2px 6px rgba(0,0,0,0.3)'};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        ${isSelected ? 'animation: pulse 1.5s ease-in-out infinite;' : ''}
+      ">
+        <div style="
+          transform: rotate(45deg);
+          color: white;
+          font-size: ${isSelected ? '14px' : '12px'};
+          font-weight: bold;
+        ">●</div>
+      </div>
+      <style>
+        @keyframes pulse {
+          0%, 100% { transform: rotate(-45deg) scale(1); }
+          50% { transform: rotate(-45deg) scale(1.1); }
+        }
+      </style>
+    `,
+    className: 'custom-marker',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size],
+    popupAnchor: [0, -size + 5]
+  });
+};
 
 interface MapPreviewProps {
   spots: Spot[];
   selectedSpot: Spot | null;
 }
 
-// Optimized Map Controller with debounced updates
+// Optimized Map Controller
 const MapController: React.FC<{ selectedSpot: Spot | null; spots: Spot[] }> = ({ selectedSpot, spots }) => {
   const map = useMap();
 
-  // Debounced invalidateSize
   useEffect(() => {
     let rafId: number;
     const invalidate = () => {
@@ -41,10 +79,8 @@ const MapController: React.FC<{ selectedSpot: Spot | null; spots: Spot[] }> = ({
       });
     };
 
-    // Initial invalidate
     invalidate();
 
-    // Throttled resize handler
     let resizeTimeout: NodeJS.Timeout;
     const handleResize = () => {
       clearTimeout(resizeTimeout);
@@ -60,7 +96,6 @@ const MapController: React.FC<{ selectedSpot: Spot | null; spots: Spot[] }> = ({
     };
   }, [map]);
 
-  // Optimized fly to selected spot
   useEffect(() => {
     if (selectedSpot) {
       map.flyTo(
@@ -84,14 +119,18 @@ const MapController: React.FC<{ selectedSpot: Spot | null; spots: Spot[] }> = ({
 };
 
 export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot }) => {
-  // Memoize markers to prevent unnecessary re-renders
+  // Memoize markers with colors
   const markers = useMemo(() => 
     spots.map((spot) => ({
       id: spot.id,
       position: [spot.coordinates.lat, spot.coordinates.lng] as [number, number],
       name: spot.name,
       description: spot.description,
-      isSelected: selectedSpot?.id === spot.id
+      category: spot.category,
+      color: getCategoryColor(spot.category),
+      isSelected: selectedSpot?.id === spot.id,
+      startTime: spot.startTime,
+      endTime: spot.endTime
     })),
     [spots, selectedSpot?.id]
   );
@@ -106,11 +145,11 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot }) =
         style={{ height: '100%', width: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         preferCanvas={true}
       >
-        {/* Use faster tile server with better caching */}
+        {/* Modern colorful map style - Stadia Alidade Smooth */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          maxZoom={19}
+          attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
+          url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
+          maxZoom={20}
           updateWhenIdle={true}
           updateWhenZooming={false}
           keepBuffer={2}
@@ -118,21 +157,74 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot }) =
         
         <MapController selectedSpot={selectedSpot} spots={spots} />
         
-        {markers.map((marker) => (
+        {markers.map((marker, index) => (
           <Marker 
             key={marker.id} 
             position={marker.position}
-            icon={marker.isSelected ? selectedIcon : defaultIcon}
+            icon={createColoredIcon(marker.color, marker.isSelected)}
+            zIndexOffset={marker.isSelected ? 1000 : index}
           >
             <Popup>
-              <div className="p-1 min-w-[120px]">
-                <h3 className="font-bold text-sm text-gray-800">{marker.name}</h3>
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{marker.description}</p>
+              <div className="p-2 min-w-[160px] max-w-[220px]">
+                {/* Header with category color */}
+                <div 
+                  className="flex items-center gap-2 pb-2 mb-2 border-b"
+                  style={{ borderColor: marker.color + '40' }}
+                >
+                  <div 
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: marker.color }}
+                  />
+                  <span 
+                    className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                    style={{ backgroundColor: marker.color + '20', color: marker.color }}
+                  >
+                    {marker.category}
+                  </span>
+                </div>
+                
+                {/* Name */}
+                <h3 className="font-bold text-sm text-gray-800 leading-tight">
+                  {marker.name}
+                </h3>
+                
+                {/* Description */}
+                <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+                  {marker.description}
+                </p>
+                
+                {/* Time info */}
+                {(marker.startTime || marker.endTime) && (
+                  <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100">
+                    <span className="text-[10px] text-gray-400">🕐</span>
+                    <span className="text-xs font-medium text-gray-600">
+                      {marker.startTime || '--:--'} ~ {marker.endTime || '--:--'}
+                    </span>
+                  </div>
+                )}
               </div>
             </Popup>
           </Marker>
         ))}
       </MapContainer>
+      
+      {/* Map Legend */}
+      {spots.length > 0 && (
+        <div className="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur rounded-lg shadow-lg p-2 max-w-[140px]">
+          <div className="text-[9px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">圖例</div>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+            {Array.from(new Set(spots.map(s => s.category))).slice(0, 6).map(cat => (
+              <div key={cat} className="flex items-center gap-1">
+                <div 
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: getCategoryColor(cat) }}
+                />
+                <span className="text-[8px] text-gray-600 truncate">{cat}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

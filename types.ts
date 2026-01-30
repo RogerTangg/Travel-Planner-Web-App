@@ -26,6 +26,7 @@ export interface Spot {
   coordinates: Coordinates;
   suggestedTime?: string; // e.g. "1.5 小時"
   startTime?: string;     // e.g. "10:00"
+  endTime?: string;       // e.g. "11:30" - manually set or auto-calculated
   notes?: string;         // User editable notes
   tags?: string[];        // Custom user tags
   isLoading?: boolean;
