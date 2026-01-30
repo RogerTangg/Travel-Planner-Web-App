@@ -19,7 +19,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const ai = new GoogleGenAI({ apiKey: context.env.GEMINI_API_KEY });
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.5-flash",
       contents: `請閱讀以下文字內容，並從中提取所有可能的「旅遊地點」、「餐廳名稱」或「車站名稱」。
       
       使用者提供的內容：

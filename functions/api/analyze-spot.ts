@@ -44,7 +44,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const ai = new GoogleGenAI({ apiKey: context.env.GEMINI_API_KEY });
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-2.5-flash",
       contents: `分析這個旅遊地點：${sanitizedName}。請根據地點名稱推測最可能的地理位置和類型。`,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
