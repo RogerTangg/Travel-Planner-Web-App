@@ -92,7 +92,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 ## 特別注意
 - 如果是日本地點，優先考慮東京、大阪、京都等熱門旅遊城市
 - 如果無法確定具體地點，請選擇該類型中最知名、最具代表性的選項
-- 座標的準確性是最重要的，不確定時寧可使用附近地標的座標`,`,
+- 座標的準確性是最重要的，不確定時寧可使用附近地標的座標`,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
