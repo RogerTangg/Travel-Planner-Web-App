@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Spot, SpotCategory } from '../types';
-import { MapPin, Clock, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2 } from 'lucide-react';
+import { MapPin, Clock, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -10,8 +10,10 @@ interface SpotCardProps {
   onClick: (spot: Spot) => void;
   onUpdate?: (id: string, updates: Partial<Spot>) => void;
   isOverlay?: boolean;
-  compact?: boolean; // For Staging area
+  compact?: boolean;
 }
+
+const CATEGORY_OPTIONS = Object.values(SpotCategory);
 
 const getIcon = (category: SpotCategory) => {
   switch (category) {
@@ -47,48 +49,66 @@ const getCategoryColor = (category: SpotCategory) => {
   }
 };
 
-// Helper to parse duration string to minutes (e.g., "1.5小時" -> 90, "30分鐘" -> 30)
+// Tag color palette
+const TAG_COLORS = [
+  'bg-rose-100 text-rose-700',
+  'bg-sky-100 text-sky-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-amber-100 text-amber-700',
+  'bg-violet-100 text-violet-700',
+  'bg-fuchsia-100 text-fuchsia-700',
+  'bg-teal-100 text-teal-700',
+  'bg-lime-100 text-lime-700',
+];
+
+const getTagColor = (tag: string) => {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
+};
+
 const parseDuration = (durationStr?: string): number => {
   if (!durationStr) return 0;
-  
-  // Try to find numbers
   const numberMatch = durationStr.match(/(\d+(\.\d+)?)/);
   if (!numberMatch) return 0;
-  
   const value = parseFloat(numberMatch[0]);
-  
   if (durationStr.includes('小時') || durationStr.includes('hr') || durationStr.includes('h')) {
     return Math.round(value * 60);
   }
-  
   return Math.round(value);
 };
 
-// Helper to format minutes into "h小時m分鐘"
 const formatDurationDisplay = (minutes: number): string => {
   if (minutes <= 0) return '';
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  
   if (h > 0 && m > 0) return `${h}小時${m}分鐘`;
   if (h > 0) return `${h}小時`;
   return `${m}分鐘`;
 };
 
-// Helper to add minutes to HH:MM time
 const addMinutesToTime = (timeStr: string, minutes: number): string => {
   if (!timeStr) return '';
   const [h, m] = timeStr.split(':').map(Number);
   if (isNaN(h) || isNaN(m)) return '';
-  
   const date = new Date();
   date.setHours(h, m + minutes);
-  
   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 };
 
 export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onUpdate, isOverlay, compact }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: spot.name,
+    description: spot.description,
+    category: spot.category,
+    suggestedTime: spot.suggestedTime || '',
+    lat: spot.coordinates.lat.toString(),
+    lng: spot.coordinates.lng.toString(),
+  });
+  const [newTag, setNewTag] = useState('');
   
   const {
     attributes,
@@ -108,38 +128,221 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
   };
 
   const durationMinutes = useMemo(() => parseDuration(spot.suggestedTime), [spot.suggestedTime]);
-  
-  // Calculate End Time
   const endTime = useMemo(() => {
     if (!spot.startTime || durationMinutes === 0) return null;
     return addMinutesToTime(spot.startTime, durationMinutes);
   }, [spot.startTime, durationMinutes]);
-
   const durationDisplay = useMemo(() => formatDurationDisplay(durationMinutes), [durationMinutes]);
 
   if (spot.isLoading) {
     return (
       <div className="p-4 mb-3 bg-white/80 backdrop-blur-sm rounded-xl border border-sakura-200 shadow-sm animate-pulse">
         <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-sakura-100/50"></div>
-            <div className="flex-1 py-1">
-                <div className="h-4 bg-sakura-100/50 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-100 rounded w-1/2"></div>
-            </div>
+          <div className="w-10 h-10 rounded-full bg-sakura-100/50"></div>
+          <div className="flex-1 py-1">
+            <div className="h-4 bg-sakura-100/50 rounded w-3/4 mb-2"></div>
+            <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+          </div>
         </div>
       </div>
     );
   }
 
   const handleUpdate = (updates: Partial<Spot>) => {
-      if (onUpdate) onUpdate(spot.id, updates);
+    if (onUpdate) onUpdate(spot.id, updates);
   };
 
-  // Helper to stop drag propagation on inputs/buttons
+  const handleSaveEdit = () => {
+    const lat = parseFloat(editForm.lat);
+    const lng = parseFloat(editForm.lng);
+    
+    handleUpdate({
+      name: editForm.name.trim() || spot.name,
+      description: editForm.description.trim() || spot.description,
+      category: editForm.category,
+      suggestedTime: editForm.suggestedTime || spot.suggestedTime,
+      coordinates: {
+        lat: isNaN(lat) ? spot.coordinates.lat : lat,
+        lng: isNaN(lng) ? spot.coordinates.lng : lng,
+      }
+    });
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditForm({
+      name: spot.name,
+      description: spot.description,
+      category: spot.category,
+      suggestedTime: spot.suggestedTime || '',
+      lat: spot.coordinates.lat.toString(),
+      lng: spot.coordinates.lng.toString(),
+    });
+    setIsEditing(false);
+  };
+
+  const handleAddTag = () => {
+    const tag = newTag.trim();
+    if (!tag) return;
+    const currentTags = spot.tags || [];
+    if (currentTags.includes(tag)) {
+      setNewTag('');
+      return;
+    }
+    handleUpdate({ tags: [...currentTags, tag] });
+    setNewTag('');
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const currentTags = spot.tags || [];
+    handleUpdate({ tags: currentTags.filter(t => t !== tagToRemove) });
+  };
+
   const stopPropagation = (e: React.PointerEvent | React.MouseEvent) => {
     e.stopPropagation();
   };
 
+  // Editing Mode - Full Form
+  if (isEditing) {
+    return (
+      <div 
+        ref={setNodeRef}
+        className="bg-white rounded-xl border-2 border-sakura-200 shadow-lg mb-3 overflow-hidden"
+      >
+        <div className="bg-sakura-50 px-3 py-2 flex items-center justify-between border-b border-sakura-100">
+          <span className="text-xs font-bold text-sakura-600 flex items-center gap-1">
+            <Edit3 size={12} />
+            編輯景點
+          </span>
+          <div className="flex gap-1">
+            <button
+              onClick={handleCancelEdit}
+              className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            >
+              <X size={14} />
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              className="p-1 text-green-500 hover:text-green-600 rounded"
+            >
+              <Check size={14} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-3 space-y-3">
+          {/* Name */}
+          <div>
+            <label className="text-[10px] font-medium text-gray-500 mb-1 block">名稱</label>
+            <input
+              type="text"
+              value={editForm.name}
+              onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="text-[10px] font-medium text-gray-500 mb-1 block">描述</label>
+            <textarea
+              value={editForm.description}
+              onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+              rows={2}
+              className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none resize-none"
+            />
+          </div>
+
+          {/* Category & Time */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-medium text-gray-500 mb-1 block">類別</label>
+              <select
+                value={editForm.category}
+                onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value as SpotCategory }))}
+                className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none"
+              >
+                {CATEGORY_OPTIONS.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-gray-500 mb-1 block">停留時間</label>
+              <input
+                type="text"
+                value={editForm.suggestedTime}
+                onChange={(e) => setEditForm(prev => ({ ...prev, suggestedTime: e.target.value }))}
+                placeholder="60 分鐘"
+                className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Coordinates */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] font-medium text-gray-500 mb-1 block">緯度 (Lat)</label>
+              <input
+                type="text"
+                value={editForm.lat}
+                onChange={(e) => setEditForm(prev => ({ ...prev, lat: e.target.value }))}
+                className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none font-mono"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-gray-500 mb-1 block">經度 (Lng)</label>
+              <input
+                type="text"
+                value={editForm.lng}
+                onChange={(e) => setEditForm(prev => ({ ...prev, lng: e.target.value }))}
+                className="w-full px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none font-mono"
+              />
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="text-[10px] font-medium text-gray-500 mb-1 block">標籤</label>
+            <div className="flex flex-wrap gap-1 mb-2">
+              {(spot.tags || []).map(tag => (
+                <span
+                  key={tag}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${getTagColor(tag)}`}
+                >
+                  {tag}
+                  <button
+                    onClick={() => handleRemoveTag(tag)}
+                    className="hover:bg-black/10 rounded-full p-0.5"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                placeholder="新增標籤..."
+                className="flex-1 px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none"
+              />
+              <button
+                onClick={handleAddTag}
+                className="px-2 py-1 bg-sakura-100 text-sakura-600 rounded-lg text-xs hover:bg-sakura-200"
+              >
+                <Plus size={12} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal View Mode
   return (
     <div
       ref={setNodeRef}
@@ -148,138 +351,123 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
       {...listeners}
       className={`group relative bg-white rounded-xl border transition-all duration-200 mb-3 overflow-hidden select-none touch-none
         ${isOverlay ? 'shadow-2xl ring-2 ring-sakura-300 rotate-2 cursor-grabbing z-50' : 'shadow-sm hover:shadow-md border-gray-100 hover:border-sakura-200 cursor-grab active:cursor-grabbing'}
+        ${spot.isManual ? 'border-l-4 border-l-amber-400' : ''}
       `}
-      onClick={() => !isEditing && onClick(spot)}
+      onClick={() => onClick(spot)}
     >
       <div className="p-3 flex gap-3">
         {/* Time Column (Only in Timeline) */}
         {!compact && (
-            <div className="flex flex-col items-center gap-1 pt-1 w-14 flex-shrink-0 border-r border-gray-50 pr-2">
-                <div className="text-gray-300 group-hover:text-sakura-300 transition-colors mb-1 cursor-grab">
-                     <GripVertical size={14} />
-                </div>
-                
-                {/* Start Time */}
-                <div className="flex flex-col items-center w-full">
-                    {isEditing ? (
-                        <input 
-                            type="time" 
-                            className="text-[10px] w-full p-0.5 bg-gray-50 border rounded text-center cursor-text outline-none focus:border-sakura-300"
-                            value={spot.startTime || ''}
-                            onChange={(e) => handleUpdate({ startTime: e.target.value })}
-                            onPointerDown={stopPropagation}
-                            onClick={stopPropagation}
-                        />
-                    ) : (
-                        <div className={`text-xs font-bold font-mono tracking-tight text-center ${spot.startTime ? 'text-gray-600' : 'text-gray-300'}`}>
-                            {spot.startTime || '--:--'}
-                        </div>
-                    )}
-                </div>
-
-                {/* Duration Indicator */}
-                <div className="h-4 w-0.5 bg-gray-100 my-0.5 rounded-full relative group/time">
-                     {/* Hover toolip for calculated duration could go here */}
-                </div>
-
-                {/* End Time (Calculated) */}
-                <div className="text-[10px] font-mono text-gray-400 text-center">
-                    {endTime || '--:--'}
-                </div>
+          <div className="flex flex-col items-center gap-1 pt-1 w-14 flex-shrink-0 border-r border-gray-50 pr-2">
+            <div className="text-gray-300 group-hover:text-sakura-300 transition-colors mb-1 cursor-grab">
+              <GripVertical size={14} />
             </div>
+            
+            <div className="flex flex-col items-center w-full">
+              <input 
+                type="time" 
+                className="text-[10px] w-full p-0.5 bg-gray-50 border rounded text-center cursor-text outline-none focus:border-sakura-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                value={spot.startTime || ''}
+                onChange={(e) => handleUpdate({ startTime: e.target.value })}
+                onPointerDown={stopPropagation}
+                onClick={stopPropagation}
+              />
+              <div className={`text-xs font-bold font-mono tracking-tight text-center ${spot.startTime ? 'text-gray-600' : 'text-gray-300'} group-hover:hidden`}>
+                {spot.startTime || '--:--'}
+              </div>
+            </div>
+
+            <div className="h-4 w-0.5 bg-gray-100 my-0.5 rounded-full relative"></div>
+
+            <div className="text-[10px] font-mono text-gray-400 text-center">
+              {endTime || '--:--'}
+            </div>
+          </div>
         )}
 
         {/* Main Content */}
         <div className="flex-1 min-w-0 flex flex-col justify-center">
-            {/* Header */}
-            <div className="flex justify-between items-start gap-2">
-              <h4 className="font-bold text-gray-800 text-sm truncate leading-tight pt-0.5">{spot.name}</h4>
-              <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 font-medium ${getCategoryColor(spot.category)}`}>
-                {getIcon(spot.category)}
-                <span className="truncate max-w-[60px]">{spot.category}</span>
-              </span>
+          {/* Header */}
+          <div className="flex justify-between items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-bold text-gray-800 text-sm truncate leading-tight pt-0.5">
+                {spot.name}
+                {spot.isManual && <span className="ml-1 text-[10px] text-amber-500">(手動)</span>}
+              </h4>
             </div>
-            
-            {/* Description */}
-            <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed tracking-wide">
-              {spot.description}
-            </p>
+            <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 font-medium ${getCategoryColor(spot.category)}`}>
+              {getIcon(spot.category)}
+              <span className="truncate max-w-[60px]">{spot.category}</span>
+            </span>
+          </div>
+          
+          {/* Description */}
+          <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed tracking-wide">
+            {spot.description}
+          </p>
 
-            {/* Actions/Footer */}
-            <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-2">
-                 <div className="flex items-center gap-2 flex-1">
-                    {isEditing ? (
-                         <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-200 flex-1 animate-in fade-in max-w-[120px]">
-                            <Clock size={10} className="text-gray-400" />
-                            <input 
-                                type="text" 
-                                value={spot.suggestedTime || ''} 
-                                onChange={(e) => handleUpdate({ suggestedTime: e.target.value })}
-                                placeholder="90"
-                                className="bg-transparent text-xs w-full outline-none text-gray-600 placeholder-gray-300 cursor-text"
-                                onPointerDown={stopPropagation}
-                                onClick={stopPropagation}
-                            />
-                            <span className="text-[10px] text-gray-400">分</span>
-                        </div>
-                    ) : (
-                        durationDisplay && (
-                            <span className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md" title="建議停留時間">
-                                <Clock size={10} />
-                                {durationDisplay}
-                            </span>
-                        )
-                    )}
-                 </div>
+          {/* Tags */}
+          {spot.tags && spot.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {spot.tags.map(tag => (
+                <span
+                  key={tag}
+                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${getTagColor(tag)}`}
+                >
+                  <Tag size={8} className="mr-0.5" />
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
 
-                 {/* Action Buttons */}
-                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                    <button 
-                        onClick={(e) => {
-                            stopPropagation(e);
-                            setIsEditing(!isEditing);
-                        }}
-                        onPointerDown={stopPropagation}
-                        className={`p-1.5 rounded-md transition-colors cursor-pointer ${isEditing ? 'text-sakura-500 bg-sakura-50' : 'text-gray-400 hover:text-sakura-500 hover:bg-gray-50'}`}
-                        title="編輯詳情"
-                    >
-                        {isEditing ? <X size={13} /> : <Edit3 size={13} />}
-                    </button>
-                    <button 
-                        onClick={(e) => {
-                            stopPropagation(e);
-                            onDelete(spot.id);
-                        }}
-                        onPointerDown={stopPropagation}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-                        title="刪除"
-                    >
-                        <Trash2 size={13} />
-                    </button>
-                </div>
+          {/* Actions/Footer */}
+          <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-2">
+            <div className="flex items-center gap-2 flex-1">
+              {durationDisplay && (
+                <span className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md" title="建議停留時間">
+                  <Clock size={10} />
+                  {durationDisplay}
+                </span>
+              )}
             </div>
 
-            {/* Notes */}
-            {(isEditing || spot.notes) && (
-                <div className="mt-2 animate-in slide-in-from-top-1">
-                    {isEditing ? (
-                        <input
-                            type="text"
-                            value={spot.notes || ''}
-                            onChange={(e) => handleUpdate({ notes: e.target.value })}
-                            placeholder="新增備註..."
-                            className="w-full text-[11px] bg-yellow-50/50 border border-yellow-100 rounded px-2 py-1.5 text-gray-600 focus:ring-1 focus:ring-yellow-200 outline-none placeholder-gray-300 cursor-text"
-                            onPointerDown={stopPropagation}
-                            onClick={stopPropagation}
-                        />
-                    ) : (
-                        <div className="text-[10px] text-gray-500 bg-yellow-50/50 px-2 py-1 rounded border border-yellow-100/50 flex items-start gap-1">
-                            <span className="text-yellow-500 mt-0.5">✎</span>
-                            {spot.notes}
-                        </div>
-                    )}
-                </div>
-            )}
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+              <button 
+                onClick={(e) => {
+                  stopPropagation(e);
+                  setIsEditing(true);
+                }}
+                onPointerDown={stopPropagation}
+                className="p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+                title="編輯景點"
+              >
+                <Edit3 size={13} />
+              </button>
+              <button 
+                onClick={(e) => {
+                  stopPropagation(e);
+                  onDelete(spot.id);
+                }}
+                onPointerDown={stopPropagation}
+                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                title="刪除"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Notes */}
+          {spot.notes && (
+            <div className="mt-2">
+              <div className="text-[10px] text-gray-500 bg-yellow-50/50 px-2 py-1 rounded border border-yellow-100/50 flex items-start gap-1">
+                <span className="text-yellow-500 mt-0.5">✎</span>
+                {spot.notes}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -27,7 +27,9 @@ export interface Spot {
   suggestedTime?: string; // e.g. "1.5 小時"
   startTime?: string;     // e.g. "10:00"
   notes?: string;         // User editable notes
+  tags?: string[];        // Custom user tags
   isLoading?: boolean;
+  isManual?: boolean;     // True if manually created (not AI)
 }
 
 export interface DayPlan {

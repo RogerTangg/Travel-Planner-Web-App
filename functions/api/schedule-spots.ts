@@ -56,23 +56,53 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const ai = new GoogleGenAI({ apiKey: context.env.GEMINI_API_KEY });
 
     const prompt = `
-      你是一位專業的旅遊行程規劃師。請將以下「待安排景點」分配到各個旅遊天數中。
+你是一位專業的旅遊行程規劃師，擁有豐富的行程安排經驗。請根據以下資訊，智慧地將「待安排景點」分配到各個旅遊天數中。
 
-      待安排景點：
-      ${JSON.stringify(sanitizedSpots, null, 2)}
+【待安排景點】
+${JSON.stringify(sanitizedSpots, null, 2)}
 
-      可用天數：
-      ${JSON.stringify(sanitizedDays, null, 2)}
+【可用天數】
+${JSON.stringify(sanitizedDays, null, 2)}
 
-      分配原則：
-      1. 根據地理位置將鄰近的景點安排在同一天
-      2. 考慮景點類型的合理搭配（例如：不要把多個博物館排在同一天）
-      3. 考慮建議停留時間，每天總時間不宜超過 8-10 小時
-      4. 餐廳、咖啡廳適合安排在觀光景點之間
-      5. 飯店通常安排在行程最後
-      6. 盡量平均分配到各天，避免某天行程過多
+【智慧分配原則 - 依優先順序】
 
-      請回傳每天要分配的景點 ID 陣列。
+1. 地理位置優先原則
+   - 計算各景點之間的地理距離
+   - 將地理位置相近的景點安排在同一天
+   - 避免同一天內跨越過大的地理範圍
+
+2. 時間效率原則
+   - 根據 suggestedTime 計算每天總時間
+   - 每天行程控制在 6-8 小時為佳，最多不超過 10 小時
+   - 預留交通、休息、用餐時間（約 2-3 小時緩衝）
+
+3. 類型多樣性原則
+   - 避免同一天安排過多相同類型的景點
+   - 例如：避免連續安排 3 個以上博物館
+   - 餐廳、咖啡廳穿插在觀光景點之間
+
+4. 動線順序原則
+   - 同一天的景點應考慮合理遊覽順序
+   - 早上適合戶外景點、公園
+   - 下午適合室內景點、博物館
+   - 傍晚適合購物、餐廳
+   - 飯店類型安排在當天最後
+
+5. 平均分配原則
+   - 盡量將景點平均分配到各天
+   - 避免某天過於密集、某天過於鬆散
+   - 考慮現有行程中各天已有的景點數量
+
+6. 特殊規則
+   - 通勤類型（車站）: 適合作為一天的起點或中轉點
+   - 飯店: 僅安排在入住當天，放在行程最後
+   - 酒吧: 安排在當天較晚時段
+
+【輸出要求】
+- 必須使用景點的原始 ID（不可修改）
+- 每個景點只能分配到一天
+- 可以不分配所有景點（若無法合理安排）
+- spotIds 陣列的順序應反映建議的遊覽順序
     `;
 
     const response = await ai.models.generateContent({
@@ -89,7 +119,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               spotIds: { 
                 type: Type.ARRAY, 
                 items: { type: Type.STRING },
-                description: "分配到該天的景點 ID 列表"
+                description: "分配到該天的景點 ID 列表，順序為建議遊覽順序"
               }
             },
             required: ["dayId", "spotIds"]

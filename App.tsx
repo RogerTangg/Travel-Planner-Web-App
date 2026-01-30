@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
   DayPlan, 
   Spot, 
@@ -6,7 +6,6 @@ import {
   Trip
 } from './types';
 import { 
-  Layout, 
   Plus, 
   Sparkles, 
   Map as MapIcon, 
@@ -18,7 +17,11 @@ import {
   FolderPlus,
   Trash2,
   ChevronRight,
-  Save
+  Save,
+  Tag,
+  PenLine,
+  ArrowUpDown,
+  X
 } from 'lucide-react';
 import { 
   DndContext, 
@@ -140,7 +143,20 @@ const App: React.FC = () => {
   // Input State
   const [newSpotName, setNewSpotName] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
+  const [isSortingUnscheduled, setIsSortingUnscheduled] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get all unique tags from current trip
+  const allTags = useMemo(() => {
+    if (!currentTrip) return [];
+    const tagSet = new Set<string>();
+    [...currentTrip.unscheduledSpots, ...currentTrip.days.flatMap(d => d.spots)].forEach(spot => {
+      (spot.tags || []).forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [currentTrip]);
 
   // --- Load trips on mount ---
   useEffect(() => {
@@ -265,6 +281,17 @@ const App: React.FC = () => {
     isLoading: true
   });
 
+  const createManualSpot = (name: string): Spot => ({
+    id: crypto.randomUUID(),
+    name: name,
+    description: "手動新增的景點",
+    category: SpotCategory.CUSTOM,
+    coordinates: { lat: 35.6895, lng: 139.6917 },
+    suggestedTime: "60 分鐘",
+    isManual: true,
+    isLoading: false
+  });
+
   const analyzeAndFillSpot = async (id: string, name: string) => {
     const analysis = await analyzeSpotWithAI(name);
     
@@ -294,8 +321,20 @@ const App: React.FC = () => {
     const nameToAdd = directName || newSpotName;
     if (!nameToAdd.trim()) return;
 
-    setIsAnalyzing(true);
     setNewSpotName("");
+
+    // Manual mode - no AI
+    if (isManualMode) {
+      const newSpot = createManualSpot(nameToAdd);
+      updateCurrentTrip(trip => ({
+        ...trip,
+        unscheduledSpots: [newSpot, ...trip.unscheduledSpots]
+      }));
+      return;
+    }
+
+    // AI mode
+    setIsAnalyzing(true);
     
     const newSpot = createPlaceholderSpot(nameToAdd);
     updateCurrentTrip(trip => ({
@@ -440,6 +479,46 @@ const App: React.FC = () => {
     }
   };
 
+  // --- Clear all unscheduled spots ---
+  const handleClearUnscheduled = () => {
+    if (!currentTrip || currentTrip.unscheduledSpots.length === 0) return;
+    if (!confirm(`確定要刪除所有 ${currentTrip.unscheduledSpots.length} 個待安排景點嗎？`)) return;
+    
+    updateCurrentTrip(trip => ({
+      ...trip,
+      unscheduledSpots: []
+    }));
+    setSelectedSpot(null);
+  };
+
+  // --- Sort unscheduled spots by proximity ---
+  const handleSortUnscheduled = async () => {
+    if (!currentTrip || currentTrip.unscheduledSpots.length < 2) return;
+    
+    const loadingSpots = currentTrip.unscheduledSpots.filter(s => s.isLoading);
+    if (loadingSpots.length > 0) {
+      alert('請等待所有景點分析完成後再進行排序');
+      return;
+    }
+
+    setIsSortingUnscheduled(true);
+    
+    try {
+      const sortedIds = await optimizeDaySchedule(currentTrip.unscheduledSpots);
+      
+      updateCurrentTrip(trip => {
+        const spotMap = new Map(trip.unscheduledSpots.map(s => [s.id, s]));
+        const newSpots = sortedIds.map(id => spotMap.get(id)).filter(Boolean) as Spot[];
+        if (newSpots.length !== trip.unscheduledSpots.length) return trip;
+        return { ...trip, unscheduledSpots: newSpots };
+      });
+    } catch (error) {
+      console.error("Sort error:", error);
+    } finally {
+      setIsSortingUnscheduled(false);
+    }
+  };
+
   // --- Drag & Drop Logic ---
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -581,8 +660,8 @@ const App: React.FC = () => {
         {/* Title Block */}
         <div className="p-5 border-b border-gray-100 bg-white">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-sakura-500">
-              <Layout size={24} />
+            <div className="flex items-center gap-2">
+              <img src="/logo.svg" alt="Logo" className="w-7 h-7" />
               <h1 className="font-bold text-lg text-gray-800">Travel Planner</h1>
             </div>
           </div>
@@ -652,20 +731,30 @@ const App: React.FC = () => {
             <div className="relative flex-1">
               <input 
                 type="text" 
-                placeholder="輸入景點名稱..." 
+                placeholder={isManualMode ? "手動輸入景點名稱..." : "輸入景點名稱 (AI 分析)..."} 
                 value={newSpotName}
                 onChange={(e) => setNewSpotName(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-sakura-200 outline-none transition-all"
+                className={`w-full pl-9 pr-3 py-2.5 bg-gray-50 border rounded-xl text-sm focus:bg-white focus:ring-2 outline-none transition-all ${isManualMode ? 'border-amber-300 focus:ring-amber-200' : 'border-gray-200 focus:ring-sakura-200'}`}
               />
               <Search className="absolute left-3 top-3 text-gray-400" size={16} />
             </div>
             
             <button 
               type="submit"
-              disabled={!newSpotName.trim() || isAnalyzing}
-              className="p-2.5 bg-white text-sakura-500 rounded-xl shadow-sm hover:shadow border border-gray-100 disabled:opacity-50"
+              disabled={!newSpotName.trim() || (isAnalyzing && !isManualMode)}
+              className={`p-2.5 rounded-xl shadow-sm hover:shadow border disabled:opacity-50 ${isManualMode ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-white text-sakura-500 border-gray-100'}`}
             >
-              {isAnalyzing && newSpotName ? <div className="animate-spin h-4 w-4 border-2 border-sakura-500 border-t-transparent rounded-full"/> : <Plus size={16} />}
+              {isAnalyzing && newSpotName && !isManualMode ? <div className="animate-spin h-4 w-4 border-2 border-sakura-500 border-t-transparent rounded-full"/> : <Plus size={16} />}
+            </button>
+
+            {/* Manual Mode Toggle */}
+            <button 
+              type="button"
+              onClick={() => setIsManualMode(!isManualMode)}
+              title={isManualMode ? "切換為 AI 模式" : "切換為手動模式"}
+              className={`p-2.5 rounded-xl shadow-sm hover:shadow border transition-colors ${isManualMode ? 'bg-amber-100 text-amber-600 border-amber-300' : 'bg-white text-gray-400 hover:text-amber-500 border-gray-100'}`}
+            >
+              <PenLine size={16} />
             </button>
 
             <div className="relative">
@@ -688,19 +777,35 @@ const App: React.FC = () => {
             </div>
           </form>
           
-          {/* Quick Buttons */}
-          <div className="grid grid-cols-4 gap-2">
-            {[{n:'飯店',i:'🏨'}, {n:'餐廳',i:'🍱'}, {n:'咖啡',i:'☕'}, {n:'購物',i:'🛍️'}].map(m => (
-              <button 
-                key={m.n} 
-                onClick={() => handleAddSpot(undefined, m.n)}
-                className="flex flex-col items-center p-2 rounded-lg hover:bg-sakura-50 text-gray-600 transition-colors"
-              >
-                <span className="text-base mb-0.5">{m.i}</span>
-                <span className="text-[10px]">{m.n}</span>
-              </button>
-            ))}
-          </div>
+          {/* Tags Filter */}
+          {allTags.length > 0 && (
+            <div className="mb-3">
+              <div className="flex items-center gap-1 mb-2">
+                <Tag size={12} className="text-gray-400" />
+                <span className="text-[10px] font-medium text-gray-500">標籤篩選</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {selectedTagFilter && (
+                  <button
+                    onClick={() => setSelectedTagFilter(null)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  >
+                    <X size={10} />
+                    清除
+                  </button>
+                )}
+                {allTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setSelectedTagFilter(selectedTagFilter === tag ? null : tag)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${selectedTagFilter === tag ? 'bg-sakura-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-sakura-100'}`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Unscheduled List */}
@@ -709,7 +814,7 @@ const App: React.FC = () => {
           className="flex-1 overflow-y-auto bg-gray-50/50 p-3 custom-scrollbar relative"
           active={activeId !== null}
         >
-          {isScheduling && <LoadingOverlay text="AI 智慧排程中..." />}
+          {(isScheduling || isSortingUnscheduled) && <LoadingOverlay text={isScheduling ? "AI 智慧排程中..." : "AI 排序中..."} />}
           
           <div className="flex items-center justify-between mb-3 px-1">
             <div className="flex items-center gap-2">
@@ -719,14 +824,36 @@ const App: React.FC = () => {
             </div>
             
             {currentTrip.unscheduledSpots.length > 0 && (
-              <button
-                onClick={handleSmartSchedule}
-                disabled={isScheduling || currentTrip.unscheduledSpots.some(s => s.isLoading)}
-                className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-sakura-400 to-sakura-500 text-white rounded-lg text-[10px] font-medium hover:shadow-md disabled:opacity-50 transition-all"
-              >
-                <Sparkles size={10} />
-                智慧排程
-              </button>
+              <div className="flex items-center gap-1">
+                {/* Sort Button */}
+                <button
+                  onClick={handleSortUnscheduled}
+                  disabled={isSortingUnscheduled || currentTrip.unscheduledSpots.length < 2 || currentTrip.unscheduledSpots.some(s => s.isLoading)}
+                  className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] font-medium hover:border-sakura-200 hover:text-sakura-500 disabled:opacity-50 transition-all"
+                  title="依地理位置排序"
+                >
+                  <ArrowUpDown size={10} />
+                </button>
+                
+                {/* Clear All Button */}
+                <button
+                  onClick={handleClearUnscheduled}
+                  className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] font-medium hover:border-red-200 hover:text-red-500 transition-all"
+                  title="清空所有待安排景點"
+                >
+                  <Trash2 size={10} />
+                </button>
+                
+                {/* Smart Schedule Button */}
+                <button
+                  onClick={handleSmartSchedule}
+                  disabled={isScheduling || currentTrip.unscheduledSpots.some(s => s.isLoading)}
+                  className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-sakura-400 to-sakura-500 text-white rounded-lg text-[10px] font-medium hover:shadow-md disabled:opacity-50 transition-all"
+                >
+                  <Sparkles size={10} />
+                  智慧排程
+                </button>
+              </div>
             )}
           </div>
           
@@ -740,7 +867,9 @@ const App: React.FC = () => {
                 <span className="text-xs">清單是空的</span>
               </div>
             )}
-            {currentTrip.unscheduledSpots.map(spot => (
+            {currentTrip.unscheduledSpots
+              .filter(spot => !selectedTagFilter || (spot.tags || []).includes(selectedTagFilter))
+              .map(spot => (
               <SpotCard 
                 key={spot.id} 
                 spot={spot} 
