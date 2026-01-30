@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Spot, SpotCategory } from '../types';
-import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation } from 'lucide-react';
+import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation, Copy } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { TimePicker } from './TimePicker';
@@ -11,6 +11,7 @@ interface SpotCardProps {
   onDelete: (id: string) => void;
   onClick: (spot: Spot) => void;
   onUpdate?: (id: string, updates: Partial<Spot>) => void;
+  onDuplicate?: (spot: Spot) => void;
   isOverlay?: boolean;
   compact?: boolean;
 }
@@ -100,7 +101,7 @@ const addMinutesToTime = (timeStr: string, minutes: number): string => {
   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 };
 
-export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onUpdate, isOverlay, compact }) => {
+export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onUpdate, onDuplicate, isOverlay, compact }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: spot.name,
@@ -459,6 +460,19 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
           <div className="mt-2 flex items-center justify-end">
             {/* Action Buttons */}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {onDuplicate && (
+                <button 
+                  onClick={(e) => {
+                    stopPropagation(e);
+                    onDuplicate(spot);
+                  }}
+                  onPointerDown={stopPropagation}
+                  className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
+                  title="複製景點"
+                >
+                  <Copy size={13} />
+                </button>
+              )}
               <button 
                 onClick={(e) => {
                   stopPropagation(e);

@@ -290,6 +290,21 @@ const App: React.FC = () => {
     if (selectedSpot?.id === id) setSelectedSpot(null);
   };
 
+  const handleDuplicateSpot = (spot: Spot) => {
+    const duplicatedSpot: Spot = {
+      ...spot,
+      id: crypto.randomUUID(),
+      name: `${spot.name} (副本)`,
+      startTime: undefined,
+      endTime: undefined
+    };
+    
+    updateCurrentTrip(trip => ({
+      ...trip,
+      unscheduledSpots: [duplicatedSpot, ...trip.unscheduledSpots]
+    }));
+  };
+
   const createPlaceholderSpot = (name: string): Spot => ({
     id: crypto.randomUUID(),
     name: name,
@@ -976,6 +991,7 @@ const App: React.FC = () => {
                     onDelete={handleDeleteSpot} 
                     onClick={setSelectedSpot}
                     onUpdate={handleUpdateSpot}
+                    onDuplicate={handleDuplicateSpot}
                     compact={true}
                   />
                 ))}
@@ -1061,6 +1077,7 @@ const App: React.FC = () => {
                           onDelete={handleDeleteSpot}
                           onClick={setSelectedSpot}
                           onUpdate={handleUpdateSpot}
+                          onDuplicate={handleDuplicateSpot}
                         />
                         {index < day.spots.length - 1 && (
                           <div className="absolute left-[26px] bottom-[-12px] top-[100%] w-0.5 bg-gray-100 z-0 h-3"></div>
