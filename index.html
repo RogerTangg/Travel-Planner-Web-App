@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Travel Planner Web App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              sakura: {
+                100: '#FFF0F5',
+                300: '#FFB7C5',
+                500: '#FF8FAB',
+              },
+              warm: {
+                50: '#FAFAFA',
+                100: '#F5F5F0',
+                800: '#333333',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <style>
+      body {
+        background-color: #FAFAFA;
+        color: #333333;
+      }
+      /* Leaflet map height */
+      .leaflet-container {
+        height: 100%;
+        width: 100%;
+        border-radius: 1rem;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+    "react": "https://esm.sh/react@^19.2.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react-leaflet": "https://esm.sh/react-leaflet@^5.0.0",
+    "leaflet": "https://esm.sh/leaflet@^1.9.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "@dnd-kit/sortable": "https://esm.sh/@dnd-kit/sortable@^10.0.0",
+    "@dnd-kit/utilities": "https://esm.sh/@dnd-kit/utilities@^3.2.2",
+    "@dnd-kit/core": "https://esm.sh/@dnd-kit/core@^6.3.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

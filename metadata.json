@@ -1,0 +1,5 @@
+{
+  "name": "Tokyo Wanderlust",
+  "description": "一款專注於直覺操作與 AI 賦能的東京旅遊排程工具。輸入名稱，AI 自動補完經緯度、介紹與交通建議，並提供智慧排程。",
+  "requestFramePermissions": []
+}
