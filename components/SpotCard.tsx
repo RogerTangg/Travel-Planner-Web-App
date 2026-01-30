@@ -145,16 +145,28 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
 
   if (spot.isLoading) {
     return (
-      <div className="px-3 py-2 mb-2 bg-white rounded-lg border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 text-gray-300 text-sm font-mono">
-            <span>--:--</span>
-            <span>-</span>
-            <span>--:--</span>
-          </div>
-          <div className="flex-1">
-            <div className="h-4 bg-gray-100 rounded w-32 mb-1 animate-pulse"></div>
-            <div className="h-3 bg-gray-50 rounded w-48 animate-pulse"></div>
+      <div className="bg-white rounded-lg border border-gray-100 shadow-sm mb-2 overflow-hidden">
+        <div className="px-3 py-2 flex items-center gap-3">
+          {/* Time Column skeleton */}
+          {!compact && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="text-gray-200 mr-1">
+                <GripVertical size={14} />
+              </div>
+              <div className="flex items-center gap-1 text-gray-300 text-xs font-mono">
+                <span className="w-10 text-center">--:--</span>
+                <span>-</span>
+                <span className="w-10 text-center">--:--</span>
+              </div>
+            </div>
+          )}
+          {/* Content skeleton */}
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center gap-2 mb-1">
+              <div className="h-4 bg-gray-100 rounded w-28 animate-pulse"></div>
+              <div className="h-4 bg-gray-50 rounded w-14 animate-pulse"></div>
+            </div>
+            <div className="h-3 bg-gray-50 rounded w-40 animate-pulse"></div>
           </div>
         </div>
       </div>
