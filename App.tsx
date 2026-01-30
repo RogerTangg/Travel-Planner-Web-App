@@ -761,17 +761,17 @@ const App: React.FC = () => {
                 placeholder={isManualMode ? "手動輸入景點名稱..." : "輸入景點名稱 (AI 分析)..."} 
                 value={newSpotName}
                 onChange={(e) => setNewSpotName(e.target.value)}
-                className={`w-full pl-9 pr-3 py-2.5 bg-gray-50 border rounded-xl text-sm focus:bg-white focus:ring-2 outline-none transition-all ${isManualMode ? 'border-amber-300 focus:ring-amber-200' : 'border-gray-200 focus:ring-sakura-200'}`}
+                className={`w-full pl-10 pr-4 py-3.5 bg-gray-50 border rounded-xl text-base focus:bg-white focus:ring-2 outline-none transition-all ${isManualMode ? 'border-amber-300 focus:ring-amber-200' : 'border-gray-200 focus:ring-sakura-200'}`}
               />
-              <Search className="absolute left-3 top-3 text-gray-400" size={16} />
+              <Search className="absolute left-3.5 top-4 text-gray-400" size={18} />
             </div>
             
             <button 
               type="submit"
               disabled={!newSpotName.trim() || (isAnalyzing && !isManualMode)}
-              className={`p-2.5 rounded-xl shadow-sm hover:shadow border disabled:opacity-50 ${isManualMode ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-white text-sakura-500 border-gray-100'}`}
+              className={`p-3.5 rounded-xl shadow-sm hover:shadow border disabled:opacity-50 ${isManualMode ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-white text-sakura-500 border-gray-100'}`}
             >
-              {isAnalyzing && newSpotName && !isManualMode ? <div className="animate-spin h-4 w-4 border-2 border-sakura-500 border-t-transparent rounded-full"/> : <Plus size={16} />}
+              {isAnalyzing && newSpotName && !isManualMode ? <div className="animate-spin h-5 w-5 border-2 border-sakura-500 border-t-transparent rounded-full"/> : <Plus size={20} />}
             </button>
 
             {/* Manual Mode Toggle */}
@@ -779,9 +779,9 @@ const App: React.FC = () => {
               type="button"
               onClick={() => setIsManualMode(!isManualMode)}
               title={isManualMode ? "切換為 AI 模式" : "切換為手動模式"}
-              className={`p-2.5 rounded-xl shadow-sm hover:shadow border transition-colors ${isManualMode ? 'bg-amber-100 text-amber-600 border-amber-300' : 'bg-white text-gray-400 hover:text-amber-500 border-gray-100'}`}
+              className={`p-3.5 rounded-xl shadow-sm hover:shadow border transition-colors ${isManualMode ? 'bg-amber-100 text-amber-600 border-amber-300' : 'bg-white text-gray-400 hover:text-amber-500 border-gray-100'}`}
             >
-              <PenLine size={16} />
+              <PenLine size={20} />
             </button>
 
             <div className="relative">
@@ -797,9 +797,9 @@ const App: React.FC = () => {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isAnalyzing}
                 title="上傳行程文字檔"
-                className="p-2.5 bg-white text-gray-500 hover:text-sakura-500 rounded-xl shadow-sm hover:shadow border border-gray-100 disabled:opacity-50 transition-colors"
+                className="p-3.5 bg-white text-gray-500 hover:text-sakura-500 rounded-xl shadow-sm hover:shadow border border-gray-100 disabled:opacity-50 transition-colors"
               >
-                {isAnalyzing && !newSpotName ? <div className="animate-spin h-4 w-4 border-2 border-sakura-500 border-t-transparent rounded-full"/> : <Upload size={16} />}
+                {isAnalyzing && !newSpotName ? <div className="animate-spin h-5 w-5 border-2 border-sakura-500 border-t-transparent rounded-full"/> : <Upload size={20} />}
               </button>
             </div>
           </form>

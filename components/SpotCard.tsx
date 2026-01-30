@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Spot, SpotCategory } from '../types';
-import { MapPin, Clock, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus } from 'lucide-react';
+import { MapPin, Clock, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { TimePicker } from './TimePicker';
 
 interface SpotCardProps {
   spot: Spot;
@@ -356,47 +357,35 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
       onClick={() => onClick(spot)}
     >
       <div className="p-3 flex gap-3">
-        {/* Time Column (Only in Timeline) */}
+        {/* Time Column (Only in Timeline) - Enhanced & Larger */}
         {!compact && (
-          <div className="flex flex-col items-center gap-0.5 pt-1 w-16 flex-shrink-0 border-r border-gray-100 pr-2">
-            <div className="text-gray-300 group-hover:text-sakura-300 transition-colors cursor-grab">
-              <GripVertical size={14} />
+          <div className="flex flex-col items-center gap-1 w-20 flex-shrink-0 border-r border-gray-100 pr-3">
+            {/* Drag Handle */}
+            <div className="text-gray-300 group-hover:text-sakura-300 transition-colors cursor-grab mb-1">
+              <GripVertical size={16} />
             </div>
             
-            {/* Start Time */}
-            <div className="relative w-full">
-              <input 
-                type="time" 
-                className={`text-xs w-full py-1 px-1 bg-transparent border border-transparent rounded text-center cursor-text outline-none 
-                  focus:bg-white focus:border-sakura-300 focus:shadow-sm
-                  ${spot.startTime ? 'text-gray-700 font-semibold' : 'text-gray-300'}
-                  hover:bg-gray-50 hover:border-gray-200 transition-all`}
-                value={spot.startTime || ''}
-                onChange={(e) => handleUpdate({ startTime: e.target.value })}
-                onPointerDown={stopPropagation}
-                onClick={stopPropagation}
-                placeholder="--:--"
-              />
-              {!spot.startTime && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-[10px] text-gray-300">
-                  開始
-                </div>
-              )}
-            </div>
+            {/* Start Time - Custom Picker */}
+            <TimePicker
+              value={spot.startTime || ''}
+              onChange={(val) => handleUpdate({ startTime: val })}
+              placeholder="--:--"
+              size="sm"
+            />
 
-            {/* Duration indicator */}
-            <div className="flex flex-col items-center py-0.5">
-              <div className="w-0.5 h-2 bg-gradient-to-b from-sakura-200 to-sakura-300 rounded-full"></div>
+            {/* Duration indicator - Enhanced */}
+            <div className="flex flex-col items-center py-1">
+              <div className="w-0.5 h-3 bg-gradient-to-b from-sakura-300 to-sakura-400 rounded-full"></div>
               {durationDisplay && (
-                <div className="text-[8px] text-sakura-400 font-medium my-0.5 whitespace-nowrap">
+                <div className="text-[9px] text-sakura-500 font-semibold my-1 whitespace-nowrap bg-sakura-50 px-1.5 py-0.5 rounded-full">
                   {durationDisplay}
                 </div>
               )}
-              <div className="w-0.5 h-2 bg-gradient-to-b from-sakura-300 to-sakura-200 rounded-full"></div>
+              <div className="w-0.5 h-3 bg-gradient-to-b from-sakura-400 to-sakura-300 rounded-full"></div>
             </div>
 
-            {/* End Time (calculated) */}
-            <div className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${endTime ? 'text-gray-500 bg-gray-50' : 'text-gray-300'}`}>
+            {/* End Time (calculated) - Larger */}
+            <div className={`text-xs font-mono px-2 py-1 rounded-lg font-medium ${endTime ? 'text-gray-600 bg-gray-100' : 'text-gray-300 bg-gray-50'}`}>
               {endTime || '--:--'}
             </div>
           </div>
