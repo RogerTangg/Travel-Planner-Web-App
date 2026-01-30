@@ -24,6 +24,7 @@ export interface Spot {
   description: string;
   category: SpotCategory;
   coordinates: Coordinates;
+  address?: string;         // Street address for the location
   suggestedTime?: string; // e.g. "1.5 小時"
   startTime?: string;     // e.g. "10:00"
   endTime?: string;       // e.g. "11:30" - manually set or auto-calculated
@@ -59,5 +60,6 @@ export interface AIAnalysisResponse {
   description: string;
   category: string;
   coordinates: [number, number]; // [lat, lng]
+  address: string;               // Street address
   suggestedTime: string;
 }

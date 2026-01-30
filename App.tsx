@@ -345,6 +345,7 @@ const App: React.FC = () => {
             description: analysis.description,
             category: analysis.category as SpotCategory,
             coordinates: { lat: analysis.coordinates[0], lng: analysis.coordinates[1] },
+            address: analysis.address,
             suggestedTime: analysis.suggestedTime,
             isLoading: false
           };

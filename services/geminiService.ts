@@ -1,4 +1,4 @@
-import { Spot, AIAnalysisResponse } from "../types";
+import { Spot, AIAnalysisResponse, Coordinates } from "../types";
 
 // API calls go through Cloudflare Functions
 const API_BASE = '/api';
@@ -21,8 +21,32 @@ export const analyzeSpotWithAI = async (spotName: string): Promise<AIAnalysisRes
       description: "無法取得 AI 資訊，請稍後再試。",
       category: "自定義",
       coordinates: [35.6895, 139.6917],
+      address: "日本東京",
       suggestedTime: "60 分鐘"
     };
+  }
+};
+
+export interface GeocodeResult {
+  lat: number;
+  lng: number;
+  formattedAddress: string;
+}
+
+export const geocodeAddress = async (address: string): Promise<GeocodeResult | null> => {
+  try {
+    const response = await fetch(`${API_BASE}/geocode`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: address.trim().slice(0, 500) })
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json() as GeocodeResult;
+
+  } catch (error) {
+    console.error("Geocoding Error:", error);
+    return null;
   }
 };
 

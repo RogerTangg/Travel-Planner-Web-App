@@ -107,9 +107,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
               items: { type: Type.NUMBER },
               description: "精確的 [緯度, 經度] 座標，小數點後至少4位"
             },
+            address: { type: Type.STRING, description: "完整的街道地址，包含國家/地區、城市、區域、街道、門牌號碼（如適用）" },
             suggestedTime: { type: Type.STRING, description: "建議停留時間，格式如 '90 分鐘'" }
           },
-          required: ["name", "description", "category", "coordinates", "suggestedTime"]
+          required: ["name", "description", "category", "coordinates", "address", "suggestedTime"]
         }
       }
     });
@@ -128,6 +129,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       description: "無法取得 AI 資訊，請稍後再試。",
       category: "自定義",
       coordinates: [35.6895, 139.6917],
+      address: "日本東京",
       suggestedTime: "60 分鐘"
     }), {
       headers: { 'Content-Type': 'application/json' }

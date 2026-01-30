@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Spot, SpotCategory } from '../types';
-import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown } from 'lucide-react';
+import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { TimePicker } from './TimePicker';
+import { geocodeAddress } from '../services/geminiService';
 
 interface SpotCardProps {
   spot: Spot;
@@ -106,10 +107,12 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
     description: spot.description,
     category: spot.category,
     suggestedTime: spot.suggestedTime || '',
+    address: spot.address || '',
     lat: spot.coordinates.lat.toString(),
     lng: spot.coordinates.lng.toString(),
   });
   const [newTag, setNewTag] = useState('');
+  const [isGeocoding, setIsGeocoding] = useState(false);
   
   const {
     attributes,
@@ -170,6 +173,7 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
       description: editForm.description.trim() || spot.description,
       category: editForm.category,
       suggestedTime: editForm.suggestedTime || spot.suggestedTime,
+      address: editForm.address.trim() || spot.address,
       coordinates: {
         lat: isNaN(lat) ? spot.coordinates.lat : lat,
         lng: isNaN(lng) ? spot.coordinates.lng : lng,
@@ -184,10 +188,32 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
       description: spot.description,
       category: spot.category,
       suggestedTime: spot.suggestedTime || '',
+      address: spot.address || '',
       lat: spot.coordinates.lat.toString(),
       lng: spot.coordinates.lng.toString(),
     });
     setIsEditing(false);
+  };
+
+  const handleGeocodeAddress = async () => {
+    if (!editForm.address.trim()) return;
+    
+    setIsGeocoding(true);
+    try {
+      const result = await geocodeAddress(editForm.address);
+      if (result) {
+        setEditForm(prev => ({
+          ...prev,
+          lat: result.lat.toString(),
+          lng: result.lng.toString(),
+          address: result.formattedAddress || prev.address
+        }));
+      }
+    } catch (error) {
+      console.error('Geocoding failed:', error);
+    } finally {
+      setIsGeocoding(false);
+    }
   };
 
   const handleAddTag = () => {
@@ -274,6 +300,33 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
+          </div>
+
+          {/* Address */}
+          <div>
+            <label className="text-[10px] font-medium text-gray-500 mb-1 block">地址</label>
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={editForm.address}
+                onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                placeholder="輸入完整地址..."
+                className="flex-1 px-2 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sakura-200 outline-none"
+              />
+              <button
+                onClick={handleGeocodeAddress}
+                disabled={isGeocoding || !editForm.address.trim()}
+                className="px-2 py-1.5 bg-sakura-100 text-sakura-600 rounded-lg text-xs hover:bg-sakura-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                title="根據地址更新座標"
+              >
+                {isGeocoding ? (
+                  <span className="animate-spin">⟳</span>
+                ) : (
+                  <Navigation size={12} />
+                )}
+              </button>
+            </div>
+            <p className="text-[9px] text-gray-400 mt-0.5">修改地址後點擊定位按鈕更新座標</p>
           </div>
 
           {/* Tags */}
@@ -376,6 +429,16 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
           <p className="text-[11px] text-gray-500 truncate leading-relaxed">
             {spot.description}
           </p>
+
+          {/* Address */}
+          {spot.address && (
+            <div className="flex items-center gap-1 mt-1">
+              <Navigation size={10} className="text-gray-400 flex-shrink-0" />
+              <p className="text-[10px] text-gray-400 truncate">
+                {spot.address}
+              </p>
+            </div>
+          )}
 
           {/* Tags */}
           {spot.tags && spot.tags.length > 0 && (
