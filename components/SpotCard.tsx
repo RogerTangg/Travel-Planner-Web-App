@@ -358,28 +358,45 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
       <div className="p-3 flex gap-3">
         {/* Time Column (Only in Timeline) */}
         {!compact && (
-          <div className="flex flex-col items-center gap-1 pt-1 w-14 flex-shrink-0 border-r border-gray-50 pr-2">
-            <div className="text-gray-300 group-hover:text-sakura-300 transition-colors mb-1 cursor-grab">
+          <div className="flex flex-col items-center gap-0.5 pt-1 w-16 flex-shrink-0 border-r border-gray-100 pr-2">
+            <div className="text-gray-300 group-hover:text-sakura-300 transition-colors cursor-grab">
               <GripVertical size={14} />
             </div>
             
-            <div className="flex flex-col items-center w-full">
+            {/* Start Time */}
+            <div className="relative w-full">
               <input 
                 type="time" 
-                className="text-[10px] w-full p-0.5 bg-gray-50 border rounded text-center cursor-text outline-none focus:border-sakura-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                className={`text-xs w-full py-1 px-1 bg-transparent border border-transparent rounded text-center cursor-text outline-none 
+                  focus:bg-white focus:border-sakura-300 focus:shadow-sm
+                  ${spot.startTime ? 'text-gray-700 font-semibold' : 'text-gray-300'}
+                  hover:bg-gray-50 hover:border-gray-200 transition-all`}
                 value={spot.startTime || ''}
                 onChange={(e) => handleUpdate({ startTime: e.target.value })}
                 onPointerDown={stopPropagation}
                 onClick={stopPropagation}
+                placeholder="--:--"
               />
-              <div className={`text-xs font-bold font-mono tracking-tight text-center ${spot.startTime ? 'text-gray-600' : 'text-gray-300'} group-hover:hidden`}>
-                {spot.startTime || '--:--'}
-              </div>
+              {!spot.startTime && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-[10px] text-gray-300">
+                  開始
+                </div>
+              )}
             </div>
 
-            <div className="h-4 w-0.5 bg-gray-100 my-0.5 rounded-full relative"></div>
+            {/* Duration indicator */}
+            <div className="flex flex-col items-center py-0.5">
+              <div className="w-0.5 h-2 bg-gradient-to-b from-sakura-200 to-sakura-300 rounded-full"></div>
+              {durationDisplay && (
+                <div className="text-[8px] text-sakura-400 font-medium my-0.5 whitespace-nowrap">
+                  {durationDisplay}
+                </div>
+              )}
+              <div className="w-0.5 h-2 bg-gradient-to-b from-sakura-300 to-sakura-200 rounded-full"></div>
+            </div>
 
-            <div className="text-[10px] font-mono text-gray-400 text-center">
+            {/* End Time (calculated) */}
+            <div className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${endTime ? 'text-gray-500 bg-gray-50' : 'text-gray-300'}`}>
               {endTime || '--:--'}
             </div>
           </div>

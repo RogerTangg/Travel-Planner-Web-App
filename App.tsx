@@ -47,11 +47,21 @@ import { createRoot } from 'react-dom/client';
 
 import { SpotCard } from './components/SpotCard';
 import { MapPreview } from './components/MapPreview';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { analyzeSpotWithAI, optimizeDaySchedule, extractSpotsFromText, scheduleUnscheduledSpots } from './services/geminiService';
 
 // --- Constants ---
 const UNSCHEDULED_ID = 'unscheduled-container';
 const LOCAL_STORAGE_KEY = 'travel-planner-trips';
+
+// --- Confirm Dialog State Type ---
+interface ConfirmState {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  type: 'danger' | 'warning' | 'info';
+  onConfirm: () => void;
+}
 
 // --- Helper Components ---
 const LoadingOverlay = ({ text = 'AI 優化中...' }: { text?: string }) => (
@@ -146,6 +156,7 @@ const App: React.FC = () => {
   const [isManualMode, setIsManualMode] = useState(false);
   const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
   const [isSortingUnscheduled, setIsSortingUnscheduled] = useState(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get all unique tags from current trip
@@ -200,14 +211,22 @@ const App: React.FC = () => {
       alert('至少需要保留一個行程');
       return;
     }
-    if (!confirm('確定要刪除這個行程嗎？')) return;
     
-    setTrips(prev => {
-      const newTrips = prev.filter(t => t.id !== tripId);
-      if (currentTripId === tripId && newTrips.length > 0) {
-        setCurrentTripId(newTrips[0].id);
+    setConfirmState({
+      isOpen: true,
+      title: '刪除行程',
+      message: '確定要刪除這個行程嗎？此操作無法復原。',
+      type: 'danger',
+      onConfirm: () => {
+        setTrips(prev => {
+          const newTrips = prev.filter(t => t.id !== tripId);
+          if (currentTripId === tripId && newTrips.length > 0) {
+            setCurrentTripId(newTrips[0].id);
+          }
+          return newTrips;
+        });
+        setConfirmState(null);
       }
-      return newTrips;
     });
   };
 
@@ -482,13 +501,21 @@ const App: React.FC = () => {
   // --- Clear all unscheduled spots ---
   const handleClearUnscheduled = () => {
     if (!currentTrip || currentTrip.unscheduledSpots.length === 0) return;
-    if (!confirm(`確定要刪除所有 ${currentTrip.unscheduledSpots.length} 個待安排景點嗎？`)) return;
     
-    updateCurrentTrip(trip => ({
-      ...trip,
-      unscheduledSpots: []
-    }));
-    setSelectedSpot(null);
+    setConfirmState({
+      isOpen: true,
+      title: '清空待安排景點',
+      message: `確定要刪除所有 ${currentTrip.unscheduledSpots.length} 個待安排景點嗎？此操作無法復原。`,
+      type: 'danger',
+      onConfirm: () => {
+        updateCurrentTrip(trip => ({
+          ...trip,
+          unscheduledSpots: []
+        }));
+        setSelectedSpot(null);
+        setConfirmState(null);
+      }
+    });
   };
 
   // --- Sort unscheduled spots by proximity ---
@@ -857,29 +884,38 @@ const App: React.FC = () => {
             )}
           </div>
           
-          <SortableContext 
-            id={UNSCHEDULED_ID}
-            items={currentTrip.unscheduledSpots.map(s => s.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {currentTrip.unscheduledSpots.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-gray-300 gap-2 opacity-50 min-h-[100px]">
-                <span className="text-xs">清單是空的</span>
-              </div>
-            )}
-            {currentTrip.unscheduledSpots
-              .filter(spot => !selectedTagFilter || (spot.tags || []).includes(selectedTagFilter))
-              .map(spot => (
-              <SpotCard 
-                key={spot.id} 
-                spot={spot} 
-                onDelete={handleDeleteSpot} 
-                onClick={setSelectedSpot}
-                onUpdate={handleUpdateSpot}
-                compact={true}
-              />
-            ))}
-          </SortableContext>
+          {(() => {
+            const filteredSpots = currentTrip.unscheduledSpots.filter(
+              spot => !selectedTagFilter || (spot.tags || []).includes(selectedTagFilter)
+            );
+            return (
+              <SortableContext 
+                id={UNSCHEDULED_ID}
+                items={filteredSpots.map(s => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {filteredSpots.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-gray-300 gap-2 opacity-50 min-h-[100px]">
+                    <span className="text-xs">
+                      {currentTrip.unscheduledSpots.length === 0 
+                        ? '清單是空的' 
+                        : '沒有符合篩選條件的景點'}
+                    </span>
+                  </div>
+                )}
+                {filteredSpots.map(spot => (
+                  <SpotCard 
+                    key={spot.id} 
+                    spot={spot} 
+                    onDelete={handleDeleteSpot} 
+                    onClick={setSelectedSpot}
+                    onUpdate={handleUpdateSpot}
+                    compact={true}
+                  />
+                ))}
+              </SortableContext>
+            );
+          })()}
         </DroppableContainer>
       </div>
 
@@ -986,6 +1022,18 @@ const App: React.FC = () => {
         ) : null}
       </DragOverlay>
       </DndContext>
+
+      {/* Confirm Dialog */}
+      {confirmState && (
+        <ConfirmDialog
+          isOpen={confirmState.isOpen}
+          title={confirmState.title}
+          message={confirmState.message}
+          type={confirmState.type}
+          onConfirm={confirmState.onConfirm}
+          onCancel={() => setConfirmState(null)}
+        />
+      )}
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
