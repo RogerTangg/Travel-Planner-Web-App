@@ -11,9 +11,9 @@ interface TimePickerProps {
 
 // Period presets for quick selection
 const PERIOD_PRESETS = [
-  { label: '早晨', icon: Sun, times: ['07:00', '08:00', '09:00', '10:00'], color: 'from-amber-400 to-orange-400' },
-  { label: '午後', icon: Sunset, times: ['12:00', '13:00', '14:00', '15:00'], color: 'from-orange-400 to-rose-400' },
-  { label: '傍晚', icon: Moon, times: ['17:00', '18:00', '19:00', '20:00'], color: 'from-indigo-400 to-purple-400' },
+  { label: '早晨', icon: Sun, times: ['07:00', '08:00', '09:00', '10:00'], color: 'bg-amber-500' },
+  { label: '午後', icon: Sunset, times: ['12:00', '13:00', '14:00', '15:00'], color: 'bg-orange-500' },
+  { label: '傍晚', icon: Moon, times: ['17:00', '18:00', '19:00', '20:00'], color: 'bg-indigo-500' },
 ];
 
 export const TimePicker: React.FC<TimePickerProps> = ({
@@ -123,10 +123,10 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
   // Get period indicator based on hour
   const getPeriodInfo = (h: number) => {
-    if (h >= 5 && h < 12) return { text: '上午', color: 'text-amber-600', bg: 'bg-amber-100', border: 'border-amber-300' };
-    if (h >= 12 && h < 17) return { text: '下午', color: 'text-orange-600', bg: 'bg-orange-100', border: 'border-orange-300' };
-    if (h >= 17 && h < 21) return { text: '傍晚', color: 'text-rose-600', bg: 'bg-rose-100', border: 'border-rose-300' };
-    return { text: '夜間', color: 'text-indigo-600', bg: 'bg-indigo-100', border: 'border-indigo-300' };
+    if (h >= 5 && h < 12) return { text: '上午', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
+    if (h >= 12 && h < 17) return { text: '下午', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
+    if (h >= 17 && h < 21) return { text: '傍晚', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
+    return { text: '夜間', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' };
   };
 
   const periodInfo = value ? getPeriodInfo(parseInt(value.split(':')[0])) : null;
@@ -141,84 +141,84 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   const dropdown = isOpen && createPortal(
     <div
       ref={dropdownRef}
-      className="fixed z-[9999] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-      style={{ top: dropdownPos.top, left: dropdownPos.left, width: 280 }}
+      className="fixed z-[9999] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      style={{ top: dropdownPos.top, left: dropdownPos.left, width: 240 }}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-sakura-400 to-sakura-500 px-4 py-3 text-white">
+      <div className="bg-gray-50 px-3 py-2 border-b border-gray-100">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium opacity-90">{label || '選擇時間'}</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/25">
+          <span className="text-xs font-medium text-gray-600">{label || '選擇時間'}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
             {getPeriodInfo(hours).text}
           </span>
         </div>
-        <div className="text-3xl font-bold font-mono mt-1 tracking-wider">
+        <div className="text-2xl font-bold font-mono mt-1 text-gray-800">
           {formatTime(hours, minutes)}
         </div>
       </div>
 
       {/* Time Selector */}
-      <div className="p-4">
-        <div className="flex items-center justify-center gap-4">
+      <div className="p-3">
+        <div className="flex items-center justify-center gap-3">
           {/* Hours */}
           <div className="flex flex-col items-center">
             <button
               type="button"
               onClick={() => adjustHours(1)}
-              className="w-12 h-8 flex items-center justify-center text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 rounded-lg transition-all"
+              className="w-10 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
             >
-              <ChevronUp size={22} />
+              <ChevronUp size={18} />
             </button>
-            <div className="w-16 h-14 flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
-              <span className="text-3xl font-bold text-gray-800 font-mono">
+            <div className="w-12 h-10 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
+              <span className="text-xl font-bold text-gray-800 font-mono">
                 {hours.toString().padStart(2, '0')}
               </span>
             </div>
             <button
               type="button"
               onClick={() => adjustHours(-1)}
-              className="w-12 h-8 flex items-center justify-center text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 rounded-lg transition-all"
+              className="w-10 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
             >
-              <ChevronDown size={22} />
+              <ChevronDown size={18} />
             </button>
-            <span className="text-[10px] text-gray-400 mt-1 font-medium">時</span>
+            <span className="text-[9px] text-gray-400 mt-0.5">時</span>
           </div>
 
-          <span className="text-3xl font-bold text-gray-300 mb-5">:</span>
+          <span className="text-xl font-bold text-gray-300 mb-4">:</span>
 
           {/* Minutes */}
           <div className="flex flex-col items-center">
             <button
               type="button"
               onClick={() => adjustMinutes(5)}
-              className="w-12 h-8 flex items-center justify-center text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 rounded-lg transition-all"
+              className="w-10 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
             >
-              <ChevronUp size={22} />
+              <ChevronUp size={18} />
             </button>
-            <div className="w-16 h-14 flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
-              <span className="text-3xl font-bold text-gray-800 font-mono">
+            <div className="w-12 h-10 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
+              <span className="text-xl font-bold text-gray-800 font-mono">
                 {minutes.toString().padStart(2, '0')}
               </span>
             </div>
             <button
               type="button"
               onClick={() => adjustMinutes(-5)}
-              className="w-12 h-8 flex items-center justify-center text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 rounded-lg transition-all"
+              className="w-10 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
             >
-              <ChevronDown size={22} />
+              <ChevronDown size={18} />
             </button>
-            <span className="text-[10px] text-gray-400 mt-1 font-medium">分</span>
+            <span className="text-[9px] text-gray-400 mt-0.5">分</span>
           </div>
         </div>
 
         {/* Quick Select */}
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 space-y-1.5">
           {PERIOD_PRESETS.map((period) => (
-            <div key={period.label} className="flex items-center gap-2">
-              <div className="w-14 flex items-center gap-1 text-[10px] font-medium text-gray-500">
-                <period.icon size={12} />
+            <div key={period.label} className="flex items-center gap-1.5">
+              <div className="w-12 flex items-center gap-1 text-[9px] font-medium text-gray-500">
+                <period.icon size={10} />
                 {period.label}
               </div>
               <div className="flex-1 grid grid-cols-4 gap-1">
@@ -227,10 +227,10 @@ export const TimePicker: React.FC<TimePickerProps> = ({
                     key={time}
                     type="button"
                     onClick={() => handleQuickSelect(time)}
-                    className={`py-1.5 text-xs font-medium rounded-lg transition-all
+                    className={`py-1 text-[10px] font-medium rounded transition-all
                       ${formatTime(hours, minutes) === time 
-                        ? `bg-gradient-to-r ${period.color} text-white shadow-md scale-105` 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-102'
+                        ? `${period.color} text-white` 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                   >
                     {time}
@@ -242,18 +242,18 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+        <div className="flex gap-2 mt-3 pt-2 border-t border-gray-100">
           <button
             type="button"
             onClick={handleClear}
-            className="flex-1 px-4 py-2.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors font-medium"
+            className="flex-1 px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors font-medium"
           >
             清除
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-sakura-500 to-sakura-600 hover:from-sakura-600 hover:to-sakura-700 text-white rounded-xl transition-all font-medium shadow-md"
+            className="flex-1 px-3 py-1.5 text-xs bg-sakura-500 hover:bg-sakura-600 text-white rounded-lg transition-colors font-medium"
           >
             確定
           </button>
@@ -272,15 +272,15 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         onClick={handleTriggerClick}
         onPointerDown={(e) => e.stopPropagation()}
         className={`
-          flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border-2 transition-all duration-200 min-w-[70px]
-          ${value && periodInfo
-            ? `${periodInfo.bg} ${periodInfo.border} ${periodInfo.color} font-bold shadow-sm` 
-            : 'bg-gray-50 border-gray-200 text-gray-400 hover:border-sakura-300 hover:bg-white'
+          flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border transition-all duration-200 min-w-[60px]
+          ${value
+            ? 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300' 
+            : 'bg-gray-50 border-gray-200 text-gray-400 hover:border-gray-300'
           }
         `}
       >
-        <Clock size={14} className="flex-shrink-0" />
-        <span className="text-sm font-mono font-bold">
+        <Clock size={12} className="flex-shrink-0 text-gray-400" />
+        <span className="text-xs font-mono font-medium">
           {value || '--:--'}
         </span>
       </button>

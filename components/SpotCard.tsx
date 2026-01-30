@@ -361,12 +361,12 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
       onClick={() => onClick(spot)}
     >
       <div className="p-3 flex gap-3">
-        {/* Time Column (Only in Timeline) - Modern Design */}
+        {/* Time Column (Only in Timeline) - Clean Design */}
         {!compact && (
-          <div className="flex flex-col items-center w-[72px] flex-shrink-0 border-r border-gray-100 pr-2">
+          <div className="flex flex-col items-center w-[60px] flex-shrink-0 border-r border-gray-100 pr-2">
             {/* Drag Handle */}
-            <div className="text-gray-300 group-hover:text-sakura-300 transition-colors cursor-grab mb-2">
-              <GripVertical size={16} />
+            <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mb-1.5">
+              <GripVertical size={14} />
             </div>
             
             {/* Start Time Picker */}
@@ -377,14 +377,14 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
             />
 
             {/* Duration Connector */}
-            <div className="flex flex-col items-center py-2 my-1">
-              <div className="w-0.5 h-2 bg-gradient-to-b from-sakura-300 to-sakura-400 rounded-full"></div>
+            <div className="flex flex-col items-center py-1 my-0.5">
+              <div className="w-px h-1.5 bg-gray-200"></div>
               {durationDisplay && (
-                <div className="text-[9px] text-white font-bold my-1 whitespace-nowrap bg-gradient-to-r from-sakura-400 to-sakura-500 px-2 py-0.5 rounded-full shadow-sm">
+                <div className="text-[8px] text-gray-500 my-0.5 whitespace-nowrap bg-gray-100 px-1.5 py-0.5 rounded">
                   {durationDisplay}
                 </div>
               )}
-              <div className="w-0.5 h-2 bg-gradient-to-b from-sakura-400 to-sakura-300 rounded-full"></div>
+              <div className="w-px h-1.5 bg-gray-200"></div>
             </div>
 
             {/* End Time Picker */}
