@@ -135,6 +135,7 @@ MobileNavigation.displayName = 'MobileNavigation';
  */
 const AppContent: React.FC = memo(() => {
   const currentTrip = useTripStore(state => state.getCurrentTrip());
+  const hasHydrated = useTripStore(state => state._hasHydrated);
   const { mobileView, setMobileView } = useUIStore();
   const { 
     sensors, 
@@ -142,6 +143,11 @@ const AppContent: React.FC = memo(() => {
     handleDragOver, 
     handleDragEnd 
   } = useDragAndDrop();
+
+  // 等待 Zustand hydration 完成
+  if (!hasHydrated) {
+    return <LoadingScreen />;
+  }
 
   // 顯示載入畫面直到有行程資料
   if (!currentTrip) {

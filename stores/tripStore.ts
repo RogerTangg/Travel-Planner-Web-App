@@ -69,6 +69,10 @@ interface TripState {
   // 狀態 (State)
   trips: Trip[];
   currentTripId: string | null;
+  _hasHydrated: boolean;
+  
+  // Hydration
+  setHasHydrated: (state: boolean) => void;
   
   // 計算屬性 (Computed)
   getCurrentTrip: () => Trip | null;
@@ -116,6 +120,10 @@ export const useTripStore = create<TripState>()(
       // --- 狀態初始值 (Initial State) ---
       trips: [],
       currentTripId: null,
+      _hasHydrated: false,
+      
+      // --- Hydration ---
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
       
       // --- 計算屬性 (Computed Properties) ---
       getCurrentTrip: () => {
@@ -469,6 +477,7 @@ export const useTripStore = create<TripState>()(
         // 重新載入後初始化
         if (state) {
           state.initializeStore();
+          state.setHasHydrated(true);
         }
       }
     }
