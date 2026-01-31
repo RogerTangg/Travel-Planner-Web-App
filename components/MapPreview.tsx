@@ -170,24 +170,63 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
       streetViewControl: false,
       fullscreenControl: true,
       zoomControl: true,
-      // 啟用 POI 點擊
+      // 重要：啟用所有 POI 圖標點擊（包括車站、景點、餐廳等）
       clickableIcons: true,
+      // 地圖樣式 - 保持所有圖標可見並可點擊
       styles: [
-        // 保持 POI 可見以便點擊新增
+        // 水域顏色
         {
           featureType: 'water',
           elementType: 'geometry',
           stylers: [{ color: '#c9d7e5' }]
         },
+        // 地景顏色
         {
           featureType: 'landscape',
           elementType: 'geometry',
           stylers: [{ color: '#f5f5f5' }]
+        },
+        // 確保交通站點（車站、地鐵站等）圖標和文字都顯示
+        {
+          featureType: 'transit',
+          elementType: 'all',
+          stylers: [{ visibility: 'on' }]
+        },
+        {
+          featureType: 'transit.station',
+          elementType: 'labels',
+          stylers: [{ visibility: 'on' }]
+        },
+        {
+          featureType: 'transit.station.rail',
+          elementType: 'labels.icon',
+          stylers: [{ visibility: 'on' }]
+        },
+        // 確保所有 POI（景點、餐廳等）圖標顯示
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'on' }]
+        },
+        {
+          featureType: 'poi',
+          elementType: 'labels.icon',
+          stylers: [{ visibility: 'on' }]
+        },
+        // 確保商業 POI 顯示
+        {
+          featureType: 'poi.business',
+          elementType: 'labels',
+          stylers: [{ visibility: 'on' }]
         }
       ]
     });
 
-    const newInfoWindow = new google.maps.InfoWindow();
+    const newInfoWindow = new google.maps.InfoWindow({
+      // 確保 InfoWindow 顯示在最上層
+      zIndex: 9999,
+      maxWidth: 300,
+    });
     
     // 初始化 Places Service
     placesServiceRef.current = new google.maps.places.PlacesService(newMap);
@@ -196,99 +235,107 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
     setInfoWindow(newInfoWindow);
   }, [isLoaded, map]);
 
-  // 監聽地圖 POI 點擊事件
+  // 顯示 POI 確認新增的 InfoWindow
+  const showAddSpotInfoWindow = useCallback((placeId: string, latLng: google.maps.LatLng) => {
+    if (!placesServiceRef.current || !infoWindow || !map || !onAddSpotFromMap) return;
+
+    // 使用 Places Service 獲取詳細資訊
+    placesServiceRef.current.getDetails(
+      {
+        placeId: placeId,
+        fields: ['name', 'formatted_address', 'geometry', 'place_id', 'types']
+      },
+      (place, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+          const lat = place.geometry?.location?.lat() || latLng.lat();
+          const lng = place.geometry?.location?.lng() || latLng.lng();
+          
+          // 顯示確認新增的 InfoWindow
+          const uniqueId = `add-spot-btn-${Date.now()}`;
+          const content = `
+            <div style="padding: 12px; min-width: 200px; max-width: 280px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="font-size: 18px;">📍</span>
+                <span style="font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 4px; background-color: #f0fdf4; color: #16a34a;">
+                  點擊新增景點
+                </span>
+              </div>
+              <h3 style="font-weight: bold; font-size: 15px; color: #1f2937; margin-bottom: 6px;">
+                ${place.name || '未知地點'}
+              </h3>
+              <p style="font-size: 11px; color: #6b7280; line-height: 1.4; margin-bottom: 12px;">
+                ${place.formatted_address || ''}
+              </p>
+              <button 
+                id="${uniqueId}"
+                style="
+                  width: 100%;
+                  padding: 10px 16px;
+                  background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  font-size: 13px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 6px;
+                  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+                  transition: all 0.2s;
+                "
+                onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(236, 72, 153, 0.4)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(236, 72, 153, 0.3)';"
+              >
+                <span>✨</span>
+                <span>新增至行程</span>
+              </button>
+            </div>
+          `;
+          
+          infoWindow.setContent(content);
+          infoWindow.setPosition({ lat, lng });
+          infoWindow.open(map);
+          
+          // 等待 DOM 渲染後綁定事件
+          setTimeout(() => {
+            const btn = document.getElementById(uniqueId);
+            if (btn) {
+              btn.onclick = () => {
+                onAddSpotFromMap({
+                  name: place.name || '未知地點',
+                  placeId: place.place_id || placeId,
+                  address: place.formatted_address,
+                  coordinates: { lat, lng }
+                });
+                infoWindow.close();
+              };
+            }
+          }, 100);
+        }
+      }
+    );
+  }, [map, infoWindow, onAddSpotFromMap]);
+
+  // 監聯地圖 POI 點擊事件（包含車站、景點等所有可點擊圖標）
   useEffect(() => {
     if (!map || !infoWindow || !onAddSpotFromMap) return;
 
+    // 監聽地圖點擊事件 - 這會捕捉 POI 點擊
     const clickListener = map.addListener('click', (event: google.maps.MapMouseEvent & { placeId?: string }) => {
       // 如果點擊的是 POI（有 placeId）
-      if (event.placeId && placesServiceRef.current) {
+      if (event.placeId && event.latLng) {
         // 阻止預設的 InfoWindow
         event.stop?.();
-        
-        // 使用 Places Service 獲取詳細資訊
-        placesServiceRef.current.getDetails(
-          {
-            placeId: event.placeId,
-            fields: ['name', 'formatted_address', 'geometry', 'place_id', 'types']
-          },
-          (place, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-              const lat = place.geometry?.location?.lat() || 0;
-              const lng = place.geometry?.location?.lng() || 0;
-              
-              // 顯示確認新增的 InfoWindow
-              const content = `
-                <div style="padding: 12px; min-width: 200px; max-width: 280px;">
-                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 18px;">📍</span>
-                    <span style="font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 4px; background-color: #f0fdf4; color: #16a34a;">
-                      點擊新增景點
-                    </span>
-                  </div>
-                  <h3 style="font-weight: bold; font-size: 15px; color: #1f2937; margin-bottom: 6px;">
-                    ${place.name}
-                  </h3>
-                  <p style="font-size: 11px; color: #6b7280; line-height: 1.4; margin-bottom: 12px;">
-                    ${place.formatted_address || ''}
-                  </p>
-                  <button 
-                    id="add-spot-btn-${event.placeId}"
-                    style="
-                      width: 100%;
-                      padding: 10px 16px;
-                      background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
-                      color: white;
-                      border: none;
-                      border-radius: 8px;
-                      font-size: 13px;
-                      font-weight: 600;
-                      cursor: pointer;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      gap: 6px;
-                      box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
-                      transition: all 0.2s;
-                    "
-                    onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(236, 72, 153, 0.4)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(236, 72, 153, 0.3)';"
-                  >
-                    <span>✨</span>
-                    <span>新增至行程</span>
-                  </button>
-                </div>
-              `;
-              
-              infoWindow.setContent(content);
-              infoWindow.setPosition({ lat, lng });
-              infoWindow.open(map);
-              
-              // 等待 DOM 渲染後綁定事件
-              setTimeout(() => {
-                const btn = document.getElementById(`add-spot-btn-${event.placeId}`);
-                if (btn) {
-                  btn.onclick = () => {
-                    onAddSpotFromMap({
-                      name: place.name || '未知地點',
-                      placeId: place.place_id || event.placeId!,
-                      address: place.formatted_address,
-                      coordinates: { lat, lng }
-                    });
-                    infoWindow.close();
-                  };
-                }
-              }, 100);
-            }
-          }
-        );
+        showAddSpotInfoWindow(event.placeId, event.latLng);
       }
     });
 
     return () => {
       google.maps.event.removeListener(clickListener);
     };
-  }, [map, infoWindow, onAddSpotFromMap]);
+  }, [map, infoWindow, onAddSpotFromMap, showAddSpotInfoWindow]);
 
   // 更新標記
   useEffect(() => {
@@ -316,8 +363,12 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
           scaledSize: new google.maps.Size(isSelected ? 40 : 32, isSelected ? 40 : 32),
           anchor: new google.maps.Point(isSelected ? 20 : 16, isSelected ? 40 : 32),
         },
-        zIndex: isSelected ? 1000 : index,
+        // 使用較低的 zIndex 避免遮擋地圖原生 POI 圖標
+        // 選中的標記提高 zIndex，但仍低於 InfoWindow
+        zIndex: isSelected ? 100 : (10 + index),
         animation: isSelected ? google.maps.Animation.BOUNCE : undefined,
+        // 設定為可點擊
+        clickable: true,
       });
 
       // 點擊標記顯示資訊視窗
@@ -416,31 +467,36 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
       {/* 地圖容器 */}
       <div ref={mapRef} className="h-full w-full" />
       
-      {/* 地圖圖例 */}
+      {/* 地圖圖例 - 移到左上角避免遮擋地圖內容和 POI */}
       {spots.length > 0 && (
-        <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-100 p-3 min-w-[180px]">
-          <div className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-gradient-to-br from-sakura-400 to-sakura-500"></div>
-            地圖圖例
+        <div className="absolute top-4 left-4 z-[5] bg-white/90 backdrop-blur-sm rounded-lg shadow-md border border-gray-200/50 p-2 max-w-[160px]">
+          <div className="text-[10px] font-bold text-gray-600 mb-1.5 flex items-center gap-1">
+            <div className="w-2 h-2 rounded bg-gradient-to-br from-sakura-400 to-sakura-500"></div>
+            圖例
           </div>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-            {Array.from(new Set(spots.map(s => s.category))).slice(0, 8).map(cat => (
-              <div key={cat} className="flex items-center gap-2">
+          <div className="grid grid-cols-1 gap-1">
+            {Array.from(new Set(spots.map(s => s.category))).slice(0, 6).map(cat => (
+              <div key={cat} className="flex items-center gap-1.5">
                 <div 
-                  className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: getCategoryColor(cat) }}
                 />
-                <span className="text-[11px] text-gray-700 font-medium truncate">{cat}</span>
+                <span className="text-[10px] text-gray-600 truncate">{cat}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Google Maps 標誌（保持可見以符合使用條款） */}
-      <div className="absolute bottom-4 right-4 z-10 bg-white/80 backdrop-blur-sm rounded px-2 py-1">
-        <span className="text-[10px] text-gray-500">Powered by Google Maps</span>
-      </div>
+      {/* 點擊新增提示 - 放在右上角 */}
+      {onAddSpotFromMap && (
+        <div className="absolute top-4 right-4 z-[5] bg-gradient-to-r from-pink-500/90 to-sakura-500/90 backdrop-blur-sm rounded-lg shadow-md px-3 py-2">
+          <div className="flex items-center gap-1.5 text-white">
+            <span className="text-sm">📍</span>
+            <span className="text-[11px] font-medium">點擊地圖上的地點可新增</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
