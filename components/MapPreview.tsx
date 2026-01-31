@@ -168,8 +168,16 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
       zoom: 12,
       mapTypeControl: false,
       streetViewControl: false,
+      // 將全螢幕按鈕移到左下角
       fullscreenControl: true,
+      fullscreenControlOptions: {
+        position: google.maps.ControlPosition.LEFT_BOTTOM,
+      },
+      // 將縮放控制項移到右下角
       zoomControl: true,
+      zoomControlOptions: {
+        position: google.maps.ControlPosition.RIGHT_BOTTOM,
+      },
       // 重要：啟用所有 POI 圖標點擊（包括車站、景點、餐廳等）
       clickableIcons: true,
       // 地圖樣式 - 保持所有圖標可見並可點擊
@@ -318,17 +326,59 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
     );
   }, [map, infoWindow, onAddSpotFromMap]);
 
-  // 監聯地圖 POI 點擊事件（包含車站、景點等所有可點擊圖標）
+  // 監聽地圖 POI 點擊事件（包含車站、景點等所有可點擊圖標）
   useEffect(() => {
     if (!map || !infoWindow || !onAddSpotFromMap) return;
 
-    // 監聽地圖點擊事件 - 這會捕捉 POI 點擊
+    // 使用 nearbySearch 查找點擊位置附近的地點
+    const searchNearbyPlaces = (latLng: google.maps.LatLng) => {
+      if (!placesServiceRef.current) return;
+      
+      placesServiceRef.current.nearbySearch(
+        {
+          location: latLng,
+          radius: 50, // 50 公尺內
+          // 搜尋所有類型，包括交通站點
+        },
+        (results, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+            // 找到最近的地點
+            const nearestPlace = results[0];
+            if (nearestPlace.place_id) {
+              showAddSpotInfoWindow(nearestPlace.place_id, latLng);
+            }
+          } else {
+            // 沒找到附近的地點，顯示提示
+            const content = `
+              <div style="padding: 12px; min-width: 180px;">
+                <div style="text-align: center; color: #6b7280;">
+                  <span style="font-size: 24px;">🔍</span>
+                  <p style="margin-top: 8px; font-size: 13px;">此位置附近沒有找到可新增的地點</p>
+                  <p style="margin-top: 4px; font-size: 11px; color: #9ca3af;">請點擊地圖上的圖標或標籤</p>
+                </div>
+              </div>
+            `;
+            infoWindow.setContent(content);
+            infoWindow.setPosition(latLng);
+            infoWindow.open(map);
+          }
+        }
+      );
+    };
+
+    // 監聽地圖點擊事件
     const clickListener = map.addListener('click', (event: google.maps.MapMouseEvent & { placeId?: string }) => {
-      // 如果點擊的是 POI（有 placeId）
-      if (event.placeId && event.latLng) {
-        // 阻止預設的 InfoWindow
-        event.stop?.();
+      if (!event.latLng) return;
+      
+      // 阻止預設的 InfoWindow
+      event.stop?.();
+      
+      if (event.placeId) {
+        // 有 placeId 直接使用
         showAddSpotInfoWindow(event.placeId, event.latLng);
+      } else {
+        // 沒有 placeId（如車站圖標），使用 nearbySearch 查找
+        searchNearbyPlaces(event.latLng);
       }
     });
 
@@ -488,12 +538,12 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
         </div>
       )}
 
-      {/* 點擊新增提示 - 放在右上角 */}
+      {/* 點擊新增提示 - 放在底部中間，避免被地圖控制項遮擋 */}
       {onAddSpotFromMap && (
-        <div className="absolute top-4 right-4 z-[5] bg-gradient-to-r from-pink-500/90 to-sakura-500/90 backdrop-blur-sm rounded-lg shadow-md px-3 py-2">
-          <div className="flex items-center gap-1.5 text-white">
-            <span className="text-sm">📍</span>
-            <span className="text-[11px] font-medium">點擊地圖上的地點可新增</span>
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[5] bg-gradient-to-r from-pink-500/95 to-sakura-500/95 backdrop-blur-sm rounded-full shadow-lg px-4 py-2.5 border border-white/20">
+          <div className="flex items-center gap-2 text-white">
+            <span className="text-base">📍</span>
+            <span className="text-xs font-medium whitespace-nowrap">點擊地圖上的地點或圖標可新增景點</span>
           </div>
         </div>
       )}
