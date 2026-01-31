@@ -39,8 +39,8 @@ import { PhotoWall } from './components/PhotoWall';
 
 // --- Drag Overlay 設定 ---
 const dropAnimation: DropAnimation = {
-  sideEffects: defaultDropAnimationSideEffects({ 
-    styles: { active: { opacity: '0.5' } } 
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: '0.5' } }
   }),
 };
 
@@ -48,17 +48,18 @@ const dropAnimation: DropAnimation = {
  * 拖曳 Overlay 元件 - 顯示正在拖曳的景點卡片
  */
 const DragOverlayContent: React.FC = memo(() => {
-  const { activeId, activeSpot } = useUIStore();
+  const activeId = useUIStore(state => state.activeId);
+  const activeSpot = useUIStore(state => state.activeSpot);
 
   if (!activeId || !activeSpot) return null;
 
   return (
     <DragOverlay dropAnimation={dropAnimation}>
       <div className="w-[280px] md:w-[300px]">
-        <SpotCard 
-          spot={activeSpot} 
-          onDelete={() => {}} 
-          onClick={() => {}} 
+        <SpotCard
+          spot={activeSpot}
+          onDelete={() => { }}
+          onClick={() => { }}
           isOverlay
         />
       </div>
@@ -72,7 +73,8 @@ DragOverlayContent.displayName = 'DragOverlayContent';
  * 確認對話框容器 - 連接 UI Store
  */
 const ConfirmDialogContainer: React.FC = memo(() => {
-  const { confirmState, hideConfirm } = useUIStore();
+  const confirmState = useUIStore(state => state.confirmState);
+  const hideConfirm = useUIStore(state => state.hideConfirm);
 
   if (!confirmState) return null;
 
@@ -128,8 +130,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
           <div className="text-center">
             <h1 className="text-xl font-bold text-red-600 mb-4">應用程式發生錯誤</h1>
             <p className="text-gray-600 mb-4">{this.state.error?.message}</p>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               className="px-4 py-2 bg-sakura-500 text-white rounded-lg"
             >
               重新載入
@@ -183,10 +185,10 @@ const AppContent: React.FC = memo(() => {
   const trips = useTripStore(state => state.trips);
   const currentTripId = useTripStore(state => state.currentTripId);
   const hasHydrated = useTripStore(state => state._hasHydrated);
-  
+
   // 在組件內計算當前行程，避免 selector 返回新物件導致的無限循環
   const currentTrip = trips.find(t => t.id === currentTripId) || null;
-  
+
   // 使用個別選擇器避免物件參考變更導致的無限循環
   const mobileView = useUIStore(state => state.mobileView);
   const setMobileView = useUIStore(state => state.setMobileView);
@@ -195,11 +197,11 @@ const AppContent: React.FC = memo(() => {
   const closeSpotDetailModal = useUIStore(state => state.closeSpotDetailModal);
   const isPhotoWallOpen = useUIStore(state => state.isPhotoWallOpen);
   const closePhotoWall = useUIStore(state => state.closePhotoWall);
-  const { 
-    sensors, 
-    handleDragStart, 
-    handleDragOver, 
-    handleDragEnd 
+  const {
+    sensors,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd
   } = useDragAndDrop();
 
   // 等待 Zustand hydration 完成
@@ -214,16 +216,16 @@ const AppContent: React.FC = memo(() => {
 
   return (
     <div className="flex h-screen w-full bg-gray-50 text-warm-800 font-sans overflow-hidden pb-14 md:pb-0">
-      <DndContext 
+      <DndContext
         sensors={sensors}
-        collisionDetection={pointerWithin} 
+        collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         {/* 桌面版：三欄佈局 */}
         {/* 手機版：根據 mobileView 顯示對應面板 */}
-        
+
         {/* 左側面板 - 待安排景點 */}
         <div className={`
           ${mobileView === 'spots' ? 'flex' : 'hidden'}
@@ -257,9 +259,9 @@ const AppContent: React.FC = memo(() => {
       </DndContext>
 
       {/* 手機底部導航 */}
-      <MobileNavigation 
-        activeView={mobileView} 
-        onViewChange={setMobileView} 
+      <MobileNavigation
+        activeView={mobileView}
+        onViewChange={setMobileView}
       />
 
       {/* 確認對話框 */}

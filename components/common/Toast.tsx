@@ -81,7 +81,8 @@ export const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
  * 直接使用此元件可自動連接 UI Store
  */
 export const ToastContainer: React.FC = () => {
-  const { toast, hideToast } = useUIStore();
+  const toast = useUIStore(state => state.toast);
+  const hideToast = useUIStore(state => state.hideToast);
   return <Toast toast={toast} onClose={hideToast} />;
 };
 
