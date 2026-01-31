@@ -37,22 +37,22 @@ export const TimePicker: React.FC<TimePickerProps> = ({
       const rect = triggerRef.current.getBoundingClientRect();
       const dropdownWidth = 180;
       const dropdownHeight = 200;
-      
+
       let left = rect.left + rect.width / 2 - dropdownWidth / 2;
       let top = rect.bottom + 4;
-      
+
       // Adjust if too far right
       if (left + dropdownWidth > window.innerWidth - 10) {
         left = window.innerWidth - dropdownWidth - 10;
       }
       // Adjust if too far left
       if (left < 10) left = 10;
-      
+
       // Adjust if too low (show above instead)
       if (top + dropdownHeight > window.innerHeight - 10) {
         top = rect.top - dropdownHeight - 4;
       }
-      
+
       setDropdownPos({ top, left });
     } else {
       setDropdownPos(null);
@@ -62,7 +62,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   // Close on click outside
   useEffect(() => {
     if (!isOpen) return;
-    
+
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
       if (
@@ -72,12 +72,12 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         setIsOpen(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const formatTime = (h: number, m: number) => 
+  const formatTime = (h: number, m: number) =>
     `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 
   const handleConfirm = () => {
@@ -222,12 +222,12 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         className={`
           flex items-center justify-center transition-all duration-200
           ${value
-            ? 'text-gray-800 hover:text-sakura-600' 
+            ? 'text-gray-800 hover:text-sakura-600'
             : 'px-1.5 py-0.5 rounded border border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500'
           }
         `}
       >
-        <span className={`font-mono ${value ? 'text-sm font-bold' : 'text-[11px]'}`}>
+        <span className={`font-mono ${value ? 'text-base font-bold' : 'text-xs'}`}>
           {value || '--:--'}
         </span>
       </button>

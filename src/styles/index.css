@@ -78,6 +78,7 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    zoom: 1.1;
   }
 
   body {

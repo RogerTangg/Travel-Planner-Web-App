@@ -114,7 +114,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
   });
   const [newTag, setNewTag] = useState('');
   const [isGeocoding, setIsGeocoding] = useState(false);
-  
+
   const {
     attributes,
     listeners,
@@ -133,14 +133,14 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
   };
 
   const durationMinutes = useMemo(() => parseDuration(spot.suggestedTime), [spot.suggestedTime]);
-  
+
   // Calculate display end time: use manual endTime or auto-calculate from startTime + duration
   const displayEndTime = useMemo(() => {
     if (spot.endTime) return spot.endTime;
     if (!spot.startTime || durationMinutes === 0) return null;
     return addMinutesToTime(spot.startTime, durationMinutes);
   }, [spot.endTime, spot.startTime, durationMinutes]);
-  
+
   const durationDisplay = useMemo(() => formatDurationDisplay(durationMinutes), [durationMinutes]);
 
   if (spot.isLoading) {
@@ -180,7 +180,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
   const handleSaveEdit = () => {
     const lat = parseFloat(editForm.lat);
     const lng = parseFloat(editForm.lng);
-    
+
     handleUpdate({
       name: editForm.name.trim() || spot.name,
       description: editForm.description.trim() || spot.description,
@@ -210,7 +210,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
 
   const handleGeocodeAddress = async () => {
     if (!editForm.address.trim()) return;
-    
+
     setIsGeocoding(true);
     try {
       const result = await geocodeAddress(editForm.address);
@@ -253,7 +253,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
   // Editing Mode - Full Form
   if (isEditing) {
     return (
-      <div 
+      <div
         ref={setNodeRef}
         className="bg-white rounded-xl border-2 border-sakura-200 shadow-lg mb-3 overflow-hidden"
       >
@@ -277,7 +277,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
             </button>
           </div>
         </div>
-        
+
         <div className="p-3 space-y-3">
           {/* Name */}
           <div>
@@ -388,7 +388,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes} 
+      {...attributes}
       {...listeners}
       className={`group relative bg-white rounded-lg border transition-all duration-200 mb-2 overflow-hidden select-none touch-none
         ${isOverlay ? 'shadow-2xl ring-2 ring-sakura-300 rotate-2 cursor-grabbing z-50' : 'shadow-sm hover:shadow-md border-gray-100 hover:border-sakura-200 cursor-grab active:cursor-grabbing'}
@@ -404,7 +404,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
             <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mr-1">
               <GripVertical size={14} />
             </div>
-            
+
             {/* Start Time */}
             <TimePicker
               value={spot.startTime || ''}
@@ -437,9 +437,9 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
               <span className="truncate max-w-[50px]">{spot.category}</span>
             </span>
           </div>
-          
+
           {/* Description - Single Line */}
-          <p className="text-[11px] text-gray-500 truncate leading-relaxed">
+          <p className="text-[11px] text-gray-500 truncate leading-relaxed mt-1">
             {spot.description}
           </p>
 
@@ -455,7 +455,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
 
           {/* Tags */}
           {spot.tags && spot.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1.5 pt-1.5 border-t border-gray-50">
+            <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-gray-50">
               {spot.tags.map(tag => (
                 <span
                   key={tag}
@@ -473,7 +473,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
             {/* Action Buttons */}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {onDuplicate && (
-                <button 
+                <button
                   onClick={(e) => {
                     stopPropagation(e);
                     onDuplicate(spot);
@@ -485,7 +485,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
                   <Copy size={13} />
                 </button>
               )}
-              <button 
+              <button
                 onClick={(e) => {
                   stopPropagation(e);
                   setIsEditing(true);
@@ -496,7 +496,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
               >
                 <Edit3 size={13} />
               </button>
-              <button 
+              <button
                 onClick={(e) => {
                   stopPropagation(e);
                   onDelete(spot.id);
