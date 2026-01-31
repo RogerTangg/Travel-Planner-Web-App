@@ -430,22 +430,15 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
         <div className="flex-1 min-w-0">
           {/* Header with Photo - 根據 compact 模式調整布局 */}
           <div className="flex flex-row gap-3 items-center">
-            {/* 景點照片縮圖 (Spot Photo Thumbnail) - 行程模式使用漸層融合設計 */}
+            {/* 景點照片縮圖 (Spot Photo Thumbnail) */}
             {spot.photos && spot.photos.length > 0 && (
-              <div className={`relative flex-shrink-0 ${compact ? 'w-12 h-12' : 'w-[68px] h-[68px]'}`}>
-                {/* 漸層背景光暈效果 - 僅行程模式 */}
-                {!compact && (
-                  <div className="absolute -inset-1 bg-gradient-to-br from-pink-300/60 via-purple-300/40 to-blue-300/60 rounded-2xl blur-md" />
-                )}
-                {/* 照片容器 */}
-                <div className={`relative w-full h-full rounded-xl overflow-hidden ${!compact ? 'shadow-lg ring-2 ring-white/80' : 'shadow-sm'}`}>
-                  <SpotPhotoGallery
-                    photos={spot.photos}
-                    spotName={spot.name}
-                    thumbnailSize={compact ? 'sm' : 'md'}
-                    className="w-full h-full"
-                  />
-                </div>
+              <div className={`flex-shrink-0 ${compact ? 'w-12 h-12' : 'w-14 h-14'} rounded-lg overflow-hidden shadow-sm`}>
+                <SpotPhotoGallery
+                  photos={spot.photos}
+                  spotName={spot.name}
+                  thumbnailSize={compact ? 'sm' : 'md'}
+                  className="w-full h-full"
+                />
               </div>
             )}
             
