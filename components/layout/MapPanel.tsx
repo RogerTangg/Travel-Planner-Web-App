@@ -19,7 +19,7 @@ import { MapPreview } from '../MapPreview';
 export const MapPanel: React.FC = memo(() => {
   const trips = useTripStore(state => state.trips);
   const currentTripId = useTripStore(state => state.currentTripId);
-  const { selectedSpot } = useUIStore();
+  const selectedSpot = useUIStore(state => state.selectedSpot);
   const { handleAddSpotFromMap } = useSpotActions();
 
   // 使用 useMemo 計算所有景點，避免無限循環
