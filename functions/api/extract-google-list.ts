@@ -32,7 +32,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     // 驗證是否為 Google Maps 相關連結
-    const isGoogleMapsUrl = /^https?:\/\/(www\.)?(google\.com\/maps|maps\.google\.com|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(url);
+    // 支援格式：
+    // - https://www.google.com/maps/...
+    // - https://maps.google.com/...
+    // - https://maps.app.goo.gl/... (短網址)
+    // - https://goo.gl/maps/... (舊版短網址)
+    const isGoogleMapsUrl = /^https?:\/\/(www\.)?(google\.com\/maps|maps\.google\.com|maps\.app\.goo\.gl|goo\.gl\/maps|goo\.gl)/i.test(url) ||
+                           url.includes('maps.app.goo.gl') || 
+                           url.includes('goo.gl/maps') ||
+                           url.includes('google.com/maps');
     
     if (!isGoogleMapsUrl) {
       return new Response(JSON.stringify({ 
@@ -174,14 +182,31 @@ async function expandShortUrl(url: string): Promise<string | null> {
   }
   
   try {
-    const response = await fetch(url, {
+    // 嘗試 HEAD 請求
+    let response = await fetch(url, {
       method: 'HEAD',
       redirect: 'manual'
     });
     
-    const location = response.headers.get('location');
+    let location = response.headers.get('location');
+    
+    // 如果 HEAD 沒有返回 location，嘗試 GET
+    if (!location) {
+      response = await fetch(url, {
+        method: 'GET',
+        redirect: 'manual'
+      });
+      location = response.headers.get('location');
+    }
+    
+    // 可能有多層重定向
+    if (location && (location.includes('goo.gl') || location.includes('maps.app.goo.gl'))) {
+      return await expandShortUrl(location);
+    }
+    
     return location || url;
-  } catch {
+  } catch (e) {
+    console.error('Short URL expansion error:', e);
     return url;
   }
 }

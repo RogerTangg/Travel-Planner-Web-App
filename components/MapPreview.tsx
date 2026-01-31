@@ -1,8 +1,36 @@
 import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react';
 import { Spot, SpotCategory } from '../types';
 
-// Google Maps API Key from environment
-const GOOGLE_MAPS_API_KEY = (window as any).__GOOGLE_MAPS_API_KEY__ || import.meta.env?.VITE_GOOGLE_MAPS_API_KEY || '';
+// Google Maps API Key - 會從 API 端點獲取或使用環境變數
+let cachedApiKey: string | null = null;
+
+const getGoogleMapsApiKey = async (): Promise<string> => {
+  // 優先使用已快取的 key
+  if (cachedApiKey) return cachedApiKey;
+  
+  // 嘗試從 window 或環境變數獲取
+  const envKey = (window as any).__GOOGLE_MAPS_API_KEY__ || import.meta.env?.VITE_GOOGLE_MAPS_API_KEY;
+  if (envKey) {
+    cachedApiKey = envKey;
+    return envKey;
+  }
+  
+  // 從 API 端點獲取
+  try {
+    const response = await fetch('/api/maps-config');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.apiKey) {
+        cachedApiKey = data.apiKey;
+        return data.apiKey;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch maps config:', e);
+  }
+  
+  return '';
+};
 
 // Category color mapping for markers
 const getCategoryColor = (category: SpotCategory): string => {
@@ -49,13 +77,19 @@ interface MapPreviewProps {
 let googleMapsLoadPromise: Promise<void> | null = null;
 let isGoogleMapsLoaded = false;
 
-const loadGoogleMapsScript = (): Promise<void> => {
+const loadGoogleMapsScript = async (): Promise<void> => {
   if (isGoogleMapsLoaded && window.google?.maps) {
     return Promise.resolve();
   }
 
   if (googleMapsLoadPromise) {
     return googleMapsLoadPromise;
+  }
+
+  const apiKey = await getGoogleMapsApiKey();
+  
+  if (!apiKey) {
+    throw new Error('No API Key available');
   }
 
   googleMapsLoadPromise = new Promise((resolve, reject) => {
@@ -76,7 +110,7 @@ const loadGoogleMapsScript = (): Promise<void> => {
 
     // 載入腳本
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=${callbackName}&libraries=marker`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=${callbackName}&libraries=marker`;
     script.async = true;
     script.defer = true;
     script.onerror = () => {
@@ -101,18 +135,17 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot }) =
 
   // 初始化 Google Maps
   useEffect(() => {
-    if (!GOOGLE_MAPS_API_KEY) {
-      setLoadError('請設定 Google Maps API Key');
-      return;
-    }
-
     loadGoogleMapsScript()
       .then(() => {
         setIsLoaded(true);
       })
       .catch((error) => {
         console.error('Google Maps load error:', error);
-        setLoadError('無法載入 Google Maps');
+        if (error.message === 'No API Key available') {
+          setLoadError('請設定 Google Maps API Key');
+        } else {
+          setLoadError('無法載入 Google Maps');
+        }
       });
   }, []);
 

@@ -65,6 +65,61 @@ interface ConfirmState {
   onConfirm: () => void;
 }
 
+// --- Toast Notification Type ---
+interface ToastState {
+  isVisible: boolean;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
+
+// --- Toast Notification Component ---
+const Toast: React.FC<{ toast: ToastState; onClose: () => void }> = ({ toast, onClose }) => {
+  useEffect(() => {
+    if (toast.isVisible) {
+      const timer = setTimeout(onClose, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.isVisible, onClose]);
+
+  if (!toast.isVisible) return null;
+
+  const bgColors = {
+    success: 'bg-green-50 border-green-200',
+    error: 'bg-red-50 border-red-200',
+    warning: 'bg-amber-50 border-amber-200',
+    info: 'bg-blue-50 border-blue-200'
+  };
+
+  const textColors = {
+    success: 'text-green-700',
+    error: 'text-red-700',
+    warning: 'text-amber-700',
+    info: 'text-blue-700'
+  };
+
+  const icons = {
+    success: '✓',
+    error: '✕',
+    warning: '⚠',
+    info: 'ℹ'
+  };
+
+  return (
+    <div className="fixed top-4 right-4 z-[9999] animate-slide-in">
+      <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border-2 shadow-lg backdrop-blur-sm ${bgColors[toast.type]} max-w-sm`}>
+        <span className={`text-lg flex-shrink-0 ${textColors[toast.type]}`}>{icons[toast.type]}</span>
+        <p className={`text-sm font-medium ${textColors[toast.type]} flex-1`}>{toast.message}</p>
+        <button
+          onClick={onClose}
+          className={`flex-shrink-0 ${textColors[toast.type]} opacity-60 hover:opacity-100 transition-opacity`}
+        >
+          <X size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // --- Helper Components ---
 const LoadingOverlay = ({ text = 'AI 優化中...' }: { text?: string }) => (
   <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-50 flex items-center justify-center rounded-2xl">
@@ -164,6 +219,17 @@ const App: React.FC = () => {
   const [showGoogleMapsInput, setShowGoogleMapsInput] = useState(false);
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
   const [isExtractingFromUrl, setIsExtractingFromUrl] = useState(false);
+  
+  // Toast 通知狀態
+  const [toast, setToast] = useState<ToastState>({ isVisible: false, message: '', type: 'info' });
+  
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ isVisible: true, message, type });
+  }, []);
+  
+  const hideToast = useCallback(() => {
+    setToast(prev => ({ ...prev, isVisible: false }));
+  }, []);
 
   // Get all unique tags from current trip
   const allTags = useMemo(() => {
@@ -461,13 +527,13 @@ const App: React.FC = () => {
       const result = await extractSpotsFromGoogleMapsList(googleMapsUrl);
       
       if (result.error) {
-        alert(`提取失敗：${result.error}`);
+        showToast(`提取失敗：${result.error}`, 'error');
         setIsExtractingFromUrl(false);
         return;
       }
       
       if (result.spots.length === 0) {
-        alert("無法從連結中識別出景點。請確認連結是否為有效的 Google Maps 清單或地點連結。");
+        showToast('無法從連結中識別出景點。請確認連結是否為有效的 Google Maps 清單或地點連結。', 'warning');
         setIsExtractingFromUrl(false);
         return;
       }
@@ -500,7 +566,7 @@ const App: React.FC = () => {
       
     } catch (error) {
       console.error("Google Maps extraction error", error);
-      alert("處理 Google Maps 連結時發生錯誤");
+      showToast('處理 Google Maps 連結時發生錯誤，請稍後再試', 'error');
     } finally {
       setIsExtractingFromUrl(false);
     }
@@ -940,38 +1006,62 @@ const App: React.FC = () => {
 
           {/* Google Maps URL Input Panel */}
           {showGoogleMapsInput && (
-            <div className="mb-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin size={14} className="text-blue-500" />
-                <span className="text-xs font-medium text-blue-700">Google Maps 清單匯入</span>
+            <div className="mb-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-100 rounded-lg">
+                    <MapPin size={16} className="text-blue-600" />
+                  </div>
+                  <span className="text-sm font-bold text-blue-800">Google Maps 清單匯入</span>
+                </div>
+                <button
+                  onClick={() => setShowGoogleMapsInput(false)}
+                  className="p-1 text-blue-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={googleMapsUrl}
-                  onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                  placeholder="貼上 Google Maps 清單或地點連結..."
-                  className="flex-1 px-3 py-2 text-sm bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none"
-                />
+              
+              <div className="space-y-3">
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400">
+                    <Link size={16} />
+                  </div>
+                  <input
+                    type="url"
+                    value={googleMapsUrl}
+                    onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                    placeholder="貼上 Google Maps 清單或地點連結..."
+                    className="w-full pl-10 pr-4 py-3 text-sm bg-white border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all placeholder:text-blue-300"
+                  />
+                </div>
+                
                 <button
                   type="button"
                   onClick={handleExtractFromGoogleMaps}
                   disabled={!googleMapsUrl.trim() || isExtractingFromUrl}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl text-sm font-bold hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
                 >
                   {isExtractingFromUrl ? (
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"/>
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"/>
+                      <span>正在提取景點...</span>
+                    </>
                   ) : (
                     <>
-                      <ExternalLink size={14} />
-                      <span>匯入</span>
+                      <ExternalLink size={16} />
+                      <span>匯入景點</span>
                     </>
                   )}
                 </button>
               </div>
-              <p className="text-[10px] text-blue-500 mt-2">
-                支援：Google Maps 清單分享連結、地點連結、短網址 (goo.gl/maps, maps.app.goo.gl)
-              </p>
+              
+              <div className="mt-3 pt-3 border-t border-blue-200">
+                <p className="text-xs text-blue-600 flex items-center gap-1">
+                  <span className="font-medium">支援格式：</span>
+                  <span className="text-blue-500">清單分享連結、地點連結、短網址</span>
+                </p>
+              </div>
             </div>
           )}
           
@@ -1238,6 +1328,9 @@ const App: React.FC = () => {
         />
       )}
 
+      {/* Toast Notification */}
+      <Toast toast={toast} onClose={hideToast} />
+
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
@@ -1251,6 +1344,19 @@ const App: React.FC = () => {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background-color: #CBD5E1;
+        }
+        @keyframes slide-in {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
         }
       `}</style>
     </div>
