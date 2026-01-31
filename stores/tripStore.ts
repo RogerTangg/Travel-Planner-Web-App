@@ -458,11 +458,24 @@ export const useTripStore = create<TripState>()(
       
       // --- 初始化 (Initialization) ---
       initializeStore: () => {
-        const { trips } = get();
+        const { trips, currentTripId, _hasHydrated } = get();
+        
+        // 防止重複初始化
+        if (_hasHydrated) return;
+        
+        // 使用單一 set 呼叫避免多次更新
         if (trips.length === 0) {
-          get().createTrip('我的旅行計畫');
-        } else if (!get().currentTripId) {
-          set({ currentTripId: trips[0].id });
+          const newTrip = createNewTrip('我的旅行計畫');
+          set({
+            trips: [newTrip],
+            currentTripId: newTrip.id,
+            _hasHydrated: true
+          });
+        } else {
+          set({
+            currentTripId: currentTripId || trips[0].id,
+            _hasHydrated: true
+          });
         }
       }
     }),
@@ -473,11 +486,16 @@ export const useTripStore = create<TripState>()(
         trips: state.trips,
         currentTripId: state.currentTripId
       }),
-      onRehydrateStorage: () => (state) => {
-        // 重新載入後初始化
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Zustand hydration error:', error);
+          return;
+        }
+        // 使用 queueMicrotask 確保在 React 渲染後執行
         if (state) {
-          state.initializeStore();
-          state.setHasHydrated(true);
+          queueMicrotask(() => {
+            state.initializeStore();
+          });
         }
       }
     }

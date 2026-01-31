@@ -10,7 +10,7 @@
  * @module App
  */
 
-import React, { useEffect, memo } from 'react';
+import React, { memo, Component, ErrorInfo, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   DndContext,
@@ -96,6 +96,50 @@ const LoadingScreen: React.FC = () => (
     <div className="animate-spin h-8 w-8 border-4 border-sakura-500 border-t-transparent rounded-full" />
   </div>
 );
+
+/**
+ * 錯誤邊界元件 (Error Boundary)
+ */
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('App Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center bg-gray-50 p-8">
+          <div className="text-center">
+            <h1 className="text-xl font-bold text-red-600 mb-4">應用程式發生錯誤</h1>
+            <p className="text-gray-600 mb-4">{this.state.error?.message}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-sakura-500 text-white rounded-lg"
+            >
+              重新載入
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 /**
  * 手機底部導航列 (Mobile Bottom Navigation)
@@ -218,21 +262,23 @@ AppContent.displayName = 'AppContent';
 /**
  * 應用程式主元件 (Main App Component)
  * 
- * 負責初始化 Store 與渲染主內容
+ * 負責渲染主內容，初始化由 Zustand persist 的 onRehydrateStorage 處理
  */
 const App: React.FC = () => {
-  const initializeStore = useTripStore(state => state.initializeStore);
-
-  // 初始化 Store
-  useEffect(() => {
-    initializeStore();
-  }, [initializeStore]);
-
-  return <AppContent />;
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
 };
 
 // --- 應用程式掛載 (App Mount) ---
-const root = createRoot(document.getElementById('root')!);
-root.render(<App />);
+const container = document.getElementById('root');
+if (container) {
+  const root = createRoot(container);
+  root.render(<App />);
+} else {
+  console.error('Root element not found');
+}
 
 export default App;
