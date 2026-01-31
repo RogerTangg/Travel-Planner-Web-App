@@ -17,9 +17,20 @@ import { MapPreview } from '../MapPreview';
  * 地圖面板主元件 (Map Panel Main Component)
  */
 export const MapPanel: React.FC = memo(() => {
-  const allSpots = useTripStore(state => state.getAllSpots());
+  const trips = useTripStore(state => state.trips);
+  const currentTripId = useTripStore(state => state.currentTripId);
   const { selectedSpot } = useUIStore();
   const { handleAddSpotFromMap } = useSpotActions();
+
+  // 使用 useMemo 計算所有景點，避免無限循環
+  const allSpots = useMemo(() => {
+    const currentTrip = trips.find(t => t.id === currentTripId);
+    if (!currentTrip) return [];
+    return [
+      ...currentTrip.unscheduledSpots,
+      ...currentTrip.days.flatMap(d => d.spots)
+    ].filter(s => !s.isLoading);
+  }, [trips, currentTripId]);
 
   // 提示文字
   const hintText = useMemo(() => {
@@ -36,11 +47,11 @@ export const MapPanel: React.FC = memo(() => {
         <MapPin size={12} className="text-sakura-500 flex-shrink-0 md:w-[14px] md:h-[14px]" />
         <span className="truncate">{hintText}</span>
       </div>
-      
+
       {/* 地圖元件 */}
-      <MapPreview 
-        spots={allSpots} 
-        selectedSpot={selectedSpot} 
+      <MapPreview
+        spots={allSpots}
+        selectedSpot={selectedSpot}
         onAddSpotFromMap={handleAddSpotFromMap}
       />
     </div>

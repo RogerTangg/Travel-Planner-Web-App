@@ -14,9 +14,9 @@ import { useCallback } from 'react';
 import { useTripStore, createPlaceholderSpot, createManualSpot } from '../stores';
 import { useUIStore } from '../stores';
 import { Spot, SpotCategory } from '../types';
-import { 
-  analyzeSpotWithAI, 
-  extractSpotsFromText, 
+import {
+  analyzeSpotWithAI,
+  extractSpotsFromText,
   scheduleUnscheduledSpots,
   optimizeDaySchedule
 } from '../services/geminiService';
@@ -27,34 +27,18 @@ import pLimit from 'p-limit';
 const aiRequestLimit = pLimit(3);
 
 export const useSpotActions = () => {
-  // Store hooks
-  const {
-    getCurrentTrip,
-    addSpotToUnscheduled,
-    updateSpot,
-    deleteSpot,
-    duplicateSpot,
-    batchAddSpots,
-    updateSpotsAfterSchedule,
-    updateDaySpots
-  } = useTripStore();
-  
-  const {
-    isManualMode,
-    setIsAnalyzing,
-    setIsScheduling,
-    setIsOptimizing,
-    setSelectedSpot,
-    showToast
-  } = useUIStore();
+  // 只訂閱需要響應變化的狀態
+  const isManualMode = useUIStore(state => state.isManualMode);
 
   /**
    * 使用 AI 分析並填充景點資訊 (Analyze and Fill Spot with AI)
    */
   const analyzeAndFillSpot = useCallback(async (id: string, name: string) => {
+    const { updateSpot } = useTripStore.getState();
+
     try {
       const analysis = await analyzeSpotWithAI(name);
-      
+
       updateSpot(id, {
         name: analysis.name,
         description: analysis.description,
@@ -71,13 +55,16 @@ export const useSpotActions = () => {
         isLoading: false
       });
     }
-  }, [updateSpot]);
+  }, []);
 
   /**
    * 新增景點 (Add Spot)
    * 根據模式決定是 AI 分析還是手動新增
    */
   const handleAddSpot = useCallback(async (name: string) => {
+    const { getCurrentTrip, addSpotToUnscheduled } = useTripStore.getState();
+    const { setIsAnalyzing, showToast } = useUIStore.getState();
+
     const currentTrip = getCurrentTrip();
     if (!currentTrip || !name.trim()) return;
 
@@ -97,12 +84,15 @@ export const useSpotActions = () => {
     await analyzeAndFillSpot(newSpot.id, name);
     setIsAnalyzing(false);
     showToast(`✅ 已新增「${name}」`, 'success');
-  }, [getCurrentTrip, isManualMode, addSpotToUnscheduled, analyzeAndFillSpot, setIsAnalyzing, showToast]);
+  }, [isManualMode, analyzeAndFillSpot]);
 
   /**
    * 從地圖點擊新增景點 (Add Spot from Map Click)
    */
   const handleAddSpotFromMap = useCallback(async (spotInfo: MapClickSpotInfo) => {
+    const { getCurrentTrip, addSpotToUnscheduled, updateSpot } = useTripStore.getState();
+    const { showToast } = useUIStore.getState();
+
     const currentTrip = getCurrentTrip();
     if (!currentTrip) return;
 
@@ -123,7 +113,7 @@ export const useSpotActions = () => {
 
     try {
       const analysis = await analyzeSpotWithAI(spotInfo.name);
-      
+
       updateSpot(newSpot.id, {
         name: analysis.name || spotInfo.name,
         description: analysis.description,
@@ -144,37 +134,43 @@ export const useSpotActions = () => {
       });
       showToast(`⚠️ 已新增「${spotInfo.name}」（部分資訊）`, 'warning');
     }
-  }, [getCurrentTrip, addSpotToUnscheduled, updateSpot, showToast]);
+  }, []);
 
   /**
    * 快速新增模組 (Add Quick Module)
    */
   const handleAddQuickModule = useCallback((category: SpotCategory, label: string) => {
+    const { getCurrentTrip, addSpotToUnscheduled } = useTripStore.getState();
+    const { showToast } = useUIStore.getState();
+
     const currentTrip = getCurrentTrip();
     if (!currentTrip) return;
-    
+
     const newSpot: Spot = {
       id: crypto.randomUUID(),
       name: `新${label}`,
       description: `請編輯此${label}的詳細資訊`,
       category,
       coordinates: { lat: 35.6895, lng: 139.6917 },
-      suggestedTime: category === SpotCategory.COMMUTE ? '30 分鐘' : 
-                     category === SpotCategory.FOOD ? '90 分鐘' :
-                     category === SpotCategory.MUSEUM ? '120 分鐘' : '60 分鐘',
+      suggestedTime: category === SpotCategory.COMMUTE ? '30 分鐘' :
+        category === SpotCategory.FOOD ? '90 分鐘' :
+          category === SpotCategory.MUSEUM ? '120 分鐘' : '60 分鐘',
       isManual: true,
       isLoading: false
     };
-    
+
     addSpotToUnscheduled(newSpot);
     showToast(`✅ 已新增「新${label}」`, 'success');
-  }, [getCurrentTrip, addSpotToUnscheduled, showToast]);
+  }, []);
 
   /**
    * 處理檔案上傳 (Handle File Upload)
    * 批次提取景點並使用 AI 補充資訊
    */
   const handleFileUpload = useCallback(async (text: string) => {
+    const { getCurrentTrip, batchAddSpots } = useTripStore.getState();
+    const { setIsAnalyzing, showToast } = useUIStore.getState();
+
     const currentTrip = getCurrentTrip();
     if (!currentTrip || !text) return;
 
@@ -182,7 +178,7 @@ export const useSpotActions = () => {
 
     try {
       const result = await extractSpotsFromText(text);
-      
+
       if (result.spots.length === 0) {
         showToast('無法從檔案中識別出景點。請確認檔案包含文字描述。', 'warning');
         setIsAnalyzing(false);
@@ -211,14 +207,14 @@ export const useSpotActions = () => {
         }
         return createPlaceholderSpot(spot.name);
       });
-      
+
       batchAddSpots(newSpots);
 
       // 使用 p-limit 控制並行，只對未驗證的景點進行 AI 分析
       const unverifiedSpots = newSpots.filter((_, index) => !result.spots[index].verified);
       if (unverifiedSpots.length > 0) {
         await Promise.all(
-          unverifiedSpots.map(s => 
+          unverifiedSpots.map(s =>
             aiRequestLimit(() => analyzeAndFillSpot(s.id, s.name))
           )
         );
@@ -230,15 +226,18 @@ export const useSpotActions = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [getCurrentTrip, setIsAnalyzing, showToast, batchAddSpots, analyzeAndFillSpot]);
+  }, [analyzeAndFillSpot]);
 
   /**
    * 智慧排程 (Smart Schedule)
    */
   const handleSmartSchedule = useCallback(async () => {
+    const { getCurrentTrip, updateSpotsAfterSchedule } = useTripStore.getState();
+    const { setIsScheduling, showToast } = useUIStore.getState();
+
     const currentTrip = getCurrentTrip();
     if (!currentTrip || currentTrip.unscheduledSpots.length === 0) return;
-    
+
     const loadingSpots = currentTrip.unscheduledSpots.filter(s => s.isLoading);
     if (loadingSpots.length > 0) {
       showToast('請等待所有景點分析完成後再進行智慧排程', 'warning');
@@ -246,7 +245,7 @@ export const useSpotActions = () => {
     }
 
     setIsScheduling(true);
-    
+
     try {
       const existingDays = currentTrip.days.map(d => ({
         id: d.id,
@@ -272,28 +271,31 @@ export const useSpotActions = () => {
     } finally {
       setIsScheduling(false);
     }
-  }, [getCurrentTrip, setIsScheduling, showToast, updateSpotsAfterSchedule]);
+  }, []);
 
   /**
    * 優化單日行程 (Optimize Day Schedule)
    */
   const handleOptimizeDay = useCallback(async (dayId: string) => {
+    const { getCurrentTrip, updateDaySpots } = useTripStore.getState();
+    const { setIsOptimizing, showToast } = useUIStore.getState();
+
     const currentTrip = getCurrentTrip();
     if (!currentTrip) return;
-    
+
     const day = currentTrip.days.find(d => d.id === dayId);
     if (!day || day.spots.length < 2) return;
 
     setIsOptimizing(dayId);
-    
+
     try {
       const sortedIds = await optimizeDaySchedule(day.spots);
-      
+
       const spotMap = new Map(day.spots.map(s => [s.id, s]));
       const newSpots = sortedIds
         .map(id => spotMap.get(id))
         .filter(Boolean) as Spot[];
-      
+
       if (newSpots.length === day.spots.length) {
         updateDaySpots(dayId, newSpots);
         showToast(`✅ Day ${day.title} 已優化排序`, 'success');
@@ -304,18 +306,36 @@ export const useSpotActions = () => {
     } finally {
       setIsOptimizing(null);
     }
-  }, [getCurrentTrip, setIsOptimizing, showToast, updateDaySpots]);
+  }, []);
 
   /**
    * 刪除景點 (Delete Spot)
    */
   const handleDeleteSpot = useCallback((id: string) => {
-    const { selectedSpot } = useUIStore.getState();
+    const { deleteSpot } = useTripStore.getState();
+    const { selectedSpot, setSelectedSpot } = useUIStore.getState();
+
     deleteSpot(id);
     if (selectedSpot?.id === id) {
       setSelectedSpot(null);
     }
-  }, [deleteSpot, setSelectedSpot]);
+  }, []);
+
+  /**
+   * 複製景點 (Duplicate Spot)
+   */
+  const handleDuplicateSpot = useCallback((spot: Spot) => {
+    const { duplicateSpot } = useTripStore.getState();
+    duplicateSpot(spot);
+  }, []);
+
+  /**
+   * 更新景點 (Update Spot)
+   */
+  const handleUpdateSpot = useCallback((id: string, updates: Partial<Spot>) => {
+    const { updateSpot } = useTripStore.getState();
+    updateSpot(id, updates);
+  }, []);
 
   return {
     handleAddSpot,
@@ -325,7 +345,7 @@ export const useSpotActions = () => {
     handleSmartSchedule,
     handleOptimizeDay,
     handleDeleteSpot,
-    handleDuplicateSpot: duplicateSpot,
-    handleUpdateSpot: updateSpot
+    handleDuplicateSpot,
+    handleUpdateSpot
   };
 };
