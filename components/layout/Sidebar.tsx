@@ -343,9 +343,27 @@ QuickModules.displayName = 'QuickModules';
  * 標籤篩選子元件 (Tag Filter)
  */
 const TagFilter: React.FC = memo(() => {
-  const allTags = useTripStore(state => state.getAllTags());
+  const trips = useTripStore(state => state.trips);
+  const currentTripId = useTripStore(state => state.currentTripId);
   const selectedTagFilter = useUIStore(state => state.selectedTagFilter);
   const setSelectedTagFilter = useUIStore(state => state.setSelectedTagFilter);
+
+  const allTags = useMemo(() => {
+    const trip = trips.find(t => t.id === currentTripId);
+    if (!trip) return [];
+    
+    const tagSet = new Set<string>();
+    const spots = [
+      ...trip.unscheduledSpots,
+      ...trip.days.flatMap(d => d.spots)
+    ];
+    
+    spots.forEach(spot => {
+      (spot.tags || []).forEach(tag => tagSet.add(tag));
+    });
+    
+    return Array.from(tagSet).sort();
+  }, [trips, currentTripId]);
 
   if (allTags.length === 0) return null;
 
