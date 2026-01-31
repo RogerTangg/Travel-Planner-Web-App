@@ -57,7 +57,10 @@ const TripSelector: React.FC = memo(() => {
   const setCurrentTripId = useTripStore(state => state.setCurrentTripId);
   const createTrip = useTripStore(state => state.createTrip);
   const deleteTrip = useTripStore(state => state.deleteTrip);
-  const { showTripList, setShowTripList, showConfirm, setSelectedSpot } = useUIStore();
+  const showTripList = useUIStore(state => state.showTripList);
+  const setShowTripList = useUIStore(state => state.setShowTripList);
+  const showConfirm = useUIStore(state => state.showConfirm);
+  const setSelectedSpot = useUIStore(state => state.setSelectedSpot);
   
   // 在組件內計算當前行程
   const currentTrip = trips.find(t => t.id === currentTripId) || null;
@@ -194,7 +197,9 @@ const SpotSearchInput: React.FC = memo(() => {
   const [newSpotName, setNewSpotName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { isManualMode, isAnalyzing, toggleManualMode, setIsAnalyzing } = useUIStore();
+  const isManualMode = useUIStore(state => state.isManualMode);
+  const isAnalyzing = useUIStore(state => state.isAnalyzing);
+  const toggleManualMode = useUIStore(state => state.toggleManualMode);
   const { handleAddSpot, handleFileUpload } = useSpotActions();
 
   const onSubmit = async (e?: React.FormEvent) => {
@@ -339,7 +344,8 @@ QuickModules.displayName = 'QuickModules';
  */
 const TagFilter: React.FC = memo(() => {
   const allTags = useTripStore(state => state.getAllTags());
-  const { selectedTagFilter, setSelectedTagFilter } = useUIStore();
+  const selectedTagFilter = useUIStore(state => state.selectedTagFilter);
+  const setSelectedTagFilter = useUIStore(state => state.setSelectedTagFilter);
 
   if (allTags.length === 0) return null;
 
@@ -387,7 +393,12 @@ const UnscheduledSpotsList: React.FC = memo(() => {
   const currentTripId = useTripStore(state => state.currentTripId);
   const currentTrip = trips.find(t => t.id === currentTripId) || null;
   const clearUnscheduledSpots = useTripStore(state => state.clearUnscheduledSpots);
-  const { selectedTagFilter, isScheduling, activeId, setSelectedSpot, showConfirm, hideConfirm } = useUIStore();
+  const selectedTagFilter = useUIStore(state => state.selectedTagFilter);
+  const isScheduling = useUIStore(state => state.isScheduling);
+  const activeId = useUIStore(state => state.activeId);
+  const setSelectedSpot = useUIStore(state => state.setSelectedSpot);
+  const showConfirm = useUIStore(state => state.showConfirm);
+  const hideConfirm = useUIStore(state => state.hideConfirm);
   const { 
     handleDeleteSpot, 
     handleUpdateSpot, 
