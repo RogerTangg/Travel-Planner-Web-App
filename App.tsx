@@ -48,7 +48,7 @@ import {
 import { createRoot } from 'react-dom/client';
 
 import { SpotCard } from './components/SpotCard';
-import { MapPreview } from './components/MapPreview';
+import { MapPreview, MapClickSpotInfo } from './components/MapPreview';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { analyzeSpotWithAI, optimizeDaySchedule, extractSpotsFromText, scheduleUnscheduledSpots } from './services/geminiService';
 
@@ -471,6 +471,75 @@ const App: React.FC = () => {
     await analyzeAndFillSpot(newSpot.id, nameToAdd);
     setIsAnalyzing(false);
   };
+
+  // 從地圖點擊新增景點
+  const handleAddSpotFromMap = useCallback(async (spotInfo: MapClickSpotInfo) => {
+    if (!currentTrip) return;
+
+    // 先建立一個載入中的景點卡片（已有部分資訊）
+    const newSpot: Spot = {
+      id: crypto.randomUUID(),
+      name: spotInfo.name,
+      description: '正在獲取詳細資訊...',
+      category: SpotCategory.SIGHTSEEING,
+      coordinates: spotInfo.coordinates,
+      address: spotInfo.address,
+      placeId: spotInfo.placeId,
+      suggestedTime: "60 分鐘",
+      isLoading: true
+    };
+
+    updateCurrentTrip(trip => ({
+      ...trip,
+      unscheduledSpots: [newSpot, ...trip.unscheduledSpots]
+    }));
+
+    showToast(`📍 正在新增「${spotInfo.name}」...`, 'info');
+
+    // 使用智慧分析補充詳細資訊
+    try {
+      const analysis = await analyzeSpotWithAI(spotInfo.name);
+      
+      updateCurrentTrip(trip => ({
+        ...trip,
+        unscheduledSpots: trip.unscheduledSpots.map(spot => {
+          if (spot.id === newSpot.id) {
+            return {
+              ...spot,
+              name: analysis.name || spotInfo.name,
+              description: analysis.description,
+              category: analysis.category as SpotCategory,
+              // 優先使用地圖點擊獲得的座標和地址（更精確）
+              coordinates: spotInfo.coordinates,
+              address: spotInfo.address || analysis.address,
+              suggestedTime: analysis.suggestedTime,
+              isLoading: false
+            };
+          }
+          return spot;
+        })
+      }));
+
+      showToast(`✅ 已新增「${analysis.name || spotInfo.name}」`, 'success');
+    } catch (error) {
+      console.error('Map spot analysis error:', error);
+      // 即使分析失敗，也保留基本資訊
+      updateCurrentTrip(trip => ({
+        ...trip,
+        unscheduledSpots: trip.unscheduledSpots.map(spot => {
+          if (spot.id === newSpot.id) {
+            return {
+              ...spot,
+              description: '點擊編輯以新增描述',
+              isLoading: false
+            };
+          }
+          return spot;
+        })
+      }));
+      showToast(`⚠️ 已新增「${spotInfo.name}」（部分資訊）`, 'warning');
+    }
+  }, [currentTrip, showToast]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -1193,9 +1262,13 @@ const App: React.FC = () => {
       <div className="w-[38%] h-full bg-white border-l border-gray-200 relative hidden xl:block shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
         <div className="absolute top-4 right-4 z-[400] bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg shadow-md text-xs font-bold flex items-center gap-2 border border-gray-100">
           <MapPin size={14} className="text-sakura-500" />
-          {selectedSpot ? `位置: ${selectedSpot.name}` : '地圖預覽'}
+          {selectedSpot ? `位置: ${selectedSpot.name}` : '點擊地圖上的地點可新增'}
         </div>
-        <MapPreview spots={allSpots} selectedSpot={selectedSpot} />
+        <MapPreview 
+          spots={allSpots} 
+          selectedSpot={selectedSpot} 
+          onAddSpotFromMap={handleAddSpotFromMap}
+        />
       </div>
 
       {/* Drag Overlay */}
