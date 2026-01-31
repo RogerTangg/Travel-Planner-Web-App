@@ -3,7 +3,6 @@
  * 
  * 中間區域的行程總覽，包含：
  * - 每日行程卡片（含背景圖）
- * - 時間軸照片視覺化
  * - 智慧排序功能
  * - 收回全部功能
  * 
@@ -11,7 +10,7 @@
  */
 
 import React, { memo, useMemo } from 'react';
-import { Calendar, Sparkles, Save, Undo2, Image as ImageIcon, Grid } from 'lucide-react';
+import { Calendar, Sparkles, Save, Undo2, Image as ImageIcon } from 'lucide-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useTripStore, useUIStore } from '../../stores';
 import { useSpotActions } from '../../hooks';
@@ -151,28 +150,12 @@ export const SchedulePanel: React.FC = () => {
   const showConfirm = useUIStore(state => state.showConfirm);
   const hideConfirm = useUIStore(state => state.hideConfirm);
   const setSelectedSpot = useUIStore(state => state.setSelectedSpot);
-  const openPhotoWall = useUIStore(state => state.openPhotoWall);
   const collectAllSpots = useTripStore(state => state.collectAllSpots);
 
   // 計算總行程點數
   const totalScheduledSpots = useMemo(() => {
     if (!currentTrip) return 0;
     return currentTrip.days.reduce((acc, d) => acc + d.spots.length, 0);
-  }, [currentTrip]);
-
-  // 計算總照片數
-  const totalPhotos = useMemo(() => {
-    if (!currentTrip) return 0;
-    let count = 0;
-    currentTrip.days.forEach(day => {
-      day.spots.forEach(spot => {
-        count += spot.photos?.length || 0;
-      });
-    });
-    currentTrip.unscheduledSpots.forEach(spot => {
-      count += spot.photos?.length || 0;
-    });
-    return count;
   }, [currentTrip]);
 
   if (!currentTrip) return null;
@@ -207,19 +190,6 @@ export const SchedulePanel: React.FC = () => {
           <div className="text-[10px] md:text-xs text-gray-400">
             {totalScheduledSpots} 個行程點
           </div>
-          
-          {/* 照片牆按鈕 */}
-          {totalPhotos > 0 && (
-            <button
-              onClick={openPhotoWall}
-              className="flex items-center gap-1 px-2 py-1 bg-sakura-50 border border-sakura-200 text-sakura-600 rounded-lg text-[10px] md:text-xs font-medium hover:bg-sakura-100 active:scale-95 transition-all"
-              title="查看照片牆"
-            >
-              <Grid size={12} />
-              <span className="hidden sm:inline">照片牆</span>
-              <span className="text-sakura-400">{totalPhotos}</span>
-            </button>
-          )}
           
           {totalScheduledSpots > 0 && (
             <button

@@ -35,7 +35,6 @@ import { ToastContainer } from './components/common';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { SpotCard } from './components/SpotCard';
 import { SpotDetailModal } from './components/SpotDetailModal';
-import { PhotoWall } from './components/PhotoWall';
 
 // --- Drag Overlay 設定 ---
 const dropAnimation: DropAnimation = {
@@ -195,8 +194,6 @@ const AppContent: React.FC = memo(() => {
   const spotDetailModalIsOpen = useUIStore(state => state.spotDetailModal?.isOpen ?? false);
   const spotDetailModalSpot = useUIStore(state => state.spotDetailModal?.spot ?? null);
   const closeSpotDetailModal = useUIStore(state => state.closeSpotDetailModal);
-  const isPhotoWallOpen = useUIStore(state => state.isPhotoWallOpen);
-  const closePhotoWall = useUIStore(state => state.closePhotoWall);
   const { 
     sensors, 
     handleDragStart, 
@@ -273,15 +270,6 @@ const AppContent: React.FC = memo(() => {
         isOpen={spotDetailModalIsOpen}
         onClose={closeSpotDetailModal}
       />
-
-      {/* 照片牆 Modal */}
-      {currentTrip && (
-        <PhotoWall
-          trip={currentTrip}
-          isOpen={isPhotoWallOpen}
-          onClose={closePhotoWall}
-        />
-      )}
 
       {/* Toast 通知 */}
       <ToastContainer />
