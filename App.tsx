@@ -178,8 +178,12 @@ MobileNavigation.displayName = 'MobileNavigation';
  * 主應用程式內容 (Main App Content)
  */
 const AppContent: React.FC = memo(() => {
-  const currentTrip = useTripStore(state => state.getCurrentTrip());
+  const trips = useTripStore(state => state.trips);
+  const currentTripId = useTripStore(state => state.currentTripId);
   const hasHydrated = useTripStore(state => state._hasHydrated);
+  
+  // 在組件內計算當前行程，避免 selector 返回新物件導致的無限循環
+  const currentTrip = trips.find(t => t.id === currentTripId) || null;
   const { mobileView, setMobileView } = useUIStore();
   const { 
     sensors, 

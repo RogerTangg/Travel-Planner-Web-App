@@ -52,10 +52,15 @@ const QUICK_MODULES = [
  * 行程選擇器子元件 (Trip Selector)
  */
 const TripSelector: React.FC = memo(() => {
-  const { trips, currentTripId, setCurrentTripId, createTrip, deleteTrip, getCurrentTrip, updateTrip } = useTripStore();
+  const trips = useTripStore(state => state.trips);
+  const currentTripId = useTripStore(state => state.currentTripId);
+  const setCurrentTripId = useTripStore(state => state.setCurrentTripId);
+  const createTrip = useTripStore(state => state.createTrip);
+  const deleteTrip = useTripStore(state => state.deleteTrip);
   const { showTripList, setShowTripList, showConfirm, setSelectedSpot } = useUIStore();
   
-  const currentTrip = getCurrentTrip();
+  // 在組件內計算當前行程
+  const currentTrip = trips.find(t => t.id === currentTripId) || null;
   if (!currentTrip) return null;
 
   const handleSelectTrip = (tripId: string) => {
@@ -332,7 +337,9 @@ TagFilter.displayName = 'TagFilter';
  * 待安排景點清單子元件 (Unscheduled Spots List)
  */
 const UnscheduledSpotsList: React.FC = memo(() => {
-  const currentTrip = useTripStore(state => state.getCurrentTrip());
+  const trips = useTripStore(state => state.trips);
+  const currentTripId = useTripStore(state => state.currentTripId);
+  const currentTrip = trips.find(t => t.id === currentTripId) || null;
   const clearUnscheduledSpots = useTripStore(state => state.clearUnscheduledSpots);
   const { selectedTagFilter, isScheduling, activeId, setSelectedSpot, showConfirm, hideConfirm } = useUIStore();
   const { 
@@ -441,7 +448,9 @@ UnscheduledSpotsList.displayName = 'UnscheduledSpotsList';
  * 側邊欄主元件 (Sidebar Main Component)
  */
 export const Sidebar: React.FC = () => {
-  const currentTrip = useTripStore(state => state.getCurrentTrip());
+  const trips = useTripStore(state => state.trips);
+  const currentTripId = useTripStore(state => state.currentTripId);
+  const currentTrip = trips.find(t => t.id === currentTripId) || null;
   const updateDayCount = useTripStore(state => state.updateDayCount);
   const updateTrip = useTripStore(state => state.updateTrip);
 

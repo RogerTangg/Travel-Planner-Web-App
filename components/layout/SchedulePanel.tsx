@@ -27,7 +27,9 @@ interface DayCardProps {
 }
 
 const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
-  const currentTrip = useTripStore(state => state.getCurrentTrip());
+  const trips = useTripStore(state => state.trips);
+  const currentTripId = useTripStore(state => state.currentTripId);
+  const currentTrip = trips.find(t => t.id === currentTripId) || null;
   const { isOptimizing, activeId, setSelectedSpot } = useUIStore();
   const { handleOptimizeDay, handleDeleteSpot, handleUpdateSpot, handleDuplicateSpot } = useSpotActions();
 
@@ -101,7 +103,9 @@ DayCard.displayName = 'DayCard';
  * 行程面板主元件 (Schedule Panel Main Component)
  */
 export const SchedulePanel: React.FC = () => {
-  const currentTrip = useTripStore(state => state.getCurrentTrip());
+  const trips = useTripStore(state => state.trips);
+  const currentTripId = useTripStore(state => state.currentTripId);
+  const currentTrip = trips.find(t => t.id === currentTripId) || null;
   const { showConfirm, hideConfirm, setSelectedSpot } = useUIStore();
   const collectAllSpots = useTripStore(state => state.collectAllSpots);
 
