@@ -1032,12 +1032,12 @@ const App: React.FC = () => {
           </form>
           
           {/* Quick Module Tags */}
-          <div className="mb-3 p-2 bg-gray-50 rounded-xl">
-            <div className="flex items-center gap-1 mb-2">
-              <Sparkles size={12} className="text-sakura-400" />
-              <span className="text-[10px] font-medium text-gray-500">快速新增模組</span>
+          <div className="mb-2 p-1.5 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-1 mb-1">
+              <Sparkles size={10} className="text-sakura-400" />
+              <span className="text-[9px] font-medium text-gray-500">快速新增模組</span>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               {[
                 { label: '景點', icon: '🏛️', category: SpotCategory.SIGHTSEEING },
                 { label: '交通', icon: '🚃', category: SpotCategory.COMMUTE },
@@ -1052,9 +1052,9 @@ const App: React.FC = () => {
                   key={module.label}
                   type="button"
                   onClick={() => handleAddQuickModule(module.category, module.label)}
-                  className="flex items-center gap-1 px-2 py-1 bg-white rounded-lg border border-gray-200 text-[11px] font-medium text-gray-600 hover:border-sakura-300 hover:bg-sakura-50 hover:text-sakura-600 transition-all shadow-sm"
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white rounded border border-gray-200 text-[10px] font-medium text-gray-600 hover:border-sakura-300 hover:bg-sakura-50 hover:text-sakura-600 transition-all shadow-sm"
                 >
-                  <span>{module.icon}</span>
+                  <span className="text-[10px]">{module.icon}</span>
                   <span>{module.label}</span>
                 </button>
               ))}

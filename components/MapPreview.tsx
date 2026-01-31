@@ -330,38 +330,66 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
   useEffect(() => {
     if (!map || !infoWindow || !onAddSpotFromMap) return;
 
-    // 使用 nearbySearch 查找點擊位置附近的地點
+    // 使用 nearbySearch 查找點擊位置附近的地點（優化版）
     const searchNearbyPlaces = (latLng: google.maps.LatLng) => {
       if (!placesServiceRef.current) return;
       
+      // 顯示搜尋中狀態
+      infoWindow.setContent(`
+        <div style="padding: 16px; text-align: center;">
+          <div style="display: inline-block; width: 24px; height: 24px; border: 3px solid #ec4899; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+          <p style="margin-top: 8px; font-size: 13px; color: #6b7280;">搜尋中...</p>
+          <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+        </div>
+      `);
+      infoWindow.setPosition(latLng);
+      infoWindow.open(map);
+      
+      // 搜尋附近地點，包含交通站點
       placesServiceRef.current.nearbySearch(
         {
           location: latLng,
-          radius: 50, // 50 公尺內
-          // 搜尋所有類型，包括交通站點
+          radius: 100, // 擴大到 100 公尺
+          // 明確指定搜尋類型，包含交通站
+          type: 'transit_station' as any,
         },
-        (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-            // 找到最近的地點
-            const nearestPlace = results[0];
+        (transitResults, transitStatus) => {
+          // 如果找到交通站
+          if (transitStatus === google.maps.places.PlacesServiceStatus.OK && transitResults && transitResults.length > 0) {
+            const nearestPlace = transitResults[0];
             if (nearestPlace.place_id) {
               showAddSpotInfoWindow(nearestPlace.place_id, latLng);
+              return;
             }
-          } else {
-            // 沒找到附近的地點，顯示提示
-            const content = `
-              <div style="padding: 12px; min-width: 180px;">
-                <div style="text-align: center; color: #6b7280;">
-                  <span style="font-size: 24px;">🔍</span>
-                  <p style="margin-top: 8px; font-size: 13px;">此位置附近沒有找到可新增的地點</p>
-                  <p style="margin-top: 4px; font-size: 11px; color: #9ca3af;">請點擊地圖上的圖標或標籤</p>
-                </div>
-              </div>
-            `;
-            infoWindow.setContent(content);
-            infoWindow.setPosition(latLng);
-            infoWindow.open(map);
           }
+          
+          // 沒找到交通站，搜尋所有類型
+          placesServiceRef.current?.nearbySearch(
+            {
+              location: latLng,
+              radius: 80,
+            },
+            (results, status) => {
+              if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+                const nearestPlace = results[0];
+                if (nearestPlace.place_id) {
+                  showAddSpotInfoWindow(nearestPlace.place_id, latLng);
+                  return;
+                }
+              }
+              
+              // 沒找到任何地點
+              infoWindow.setContent(`
+                <div style="padding: 12px; min-width: 180px;">
+                  <div style="text-align: center; color: #6b7280;">
+                    <span style="font-size: 24px;">🔍</span>
+                    <p style="margin-top: 8px; font-size: 13px;">此位置附近沒有找到可新增的地點</p>
+                    <p style="margin-top: 4px; font-size: 11px; color: #9ca3af;">請點擊地圖上的圖標或標籤</p>
+                  </div>
+                </div>
+              `);
+            }
+          );
         }
       );
     };
@@ -538,9 +566,9 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
         </div>
       )}
 
-      {/* 點擊新增提示 - 放在底部中間，避免被地圖控制項遮擋 */}
+      {/* 點擊新增提示 - 放在底部中間 */}
       {onAddSpotFromMap && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[5] bg-gradient-to-r from-pink-500/95 to-sakura-500/95 backdrop-blur-sm rounded-full shadow-lg px-4 py-2.5 border border-white/20">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[5] bg-pink-500 backdrop-blur-sm rounded-full shadow-lg px-4 py-2.5">
           <div className="flex items-center gap-2 text-white">
             <span className="text-base">📍</span>
             <span className="text-xs font-medium whitespace-nowrap">點擊地圖上的地點或圖標可新增景點</span>
