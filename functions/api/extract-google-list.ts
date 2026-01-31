@@ -31,16 +31,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       });
     }
 
+    console.log('Processing URL:', url);
+
     // 驗證是否為 Google Maps 相關連結
-    // 支援格式：
-    // - https://www.google.com/maps/...
-    // - https://maps.google.com/...
-    // - https://maps.app.goo.gl/... (短網址)
-    // - https://goo.gl/maps/... (舊版短網址)
-    const isGoogleMapsUrl = /^https?:\/\/(www\.)?(google\.com\/maps|maps\.google\.com|maps\.app\.goo\.gl|goo\.gl\/maps|goo\.gl)/i.test(url) ||
-                           url.includes('maps.app.goo.gl') || 
+    const isGoogleMapsUrl = url.includes('maps.app.goo.gl') || 
                            url.includes('goo.gl/maps') ||
-                           url.includes('google.com/maps');
+                           url.includes('goo.gl') ||
+                           url.includes('google.com/maps') ||
+                           url.includes('maps.google.com');
     
     if (!isGoogleMapsUrl) {
       return new Response(JSON.stringify({ 
@@ -52,84 +50,98 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       });
     }
 
-    // 嘗試獲取頁面內容
+    // 展開短網址
+    let expandedUrl = url;
     let pageContent = '';
+    
     try {
-      // 先嘗試展開短網址
-      const expandedUrl = await expandShortUrl(url);
-      
-      // 從 URL 中提取有用的資訊
-      const urlInfo = parseGoogleMapsUrl(expandedUrl || url);
-      
-      if (urlInfo.placeIds && urlInfo.placeIds.length > 0) {
-        // 如果有 Place IDs，使用 Places API 獲取詳細資訊
-        const places = await fetchPlaceDetails(urlInfo.placeIds, context.env.GOOGLE_MAPS_API_KEY);
-        if (places.length > 0) {
-          return new Response(JSON.stringify({
-            spots: places.map(p => ({
-              name: p.name,
-              address: p.address,
-              coordinates: p.coordinates,
-              placeId: p.placeId
-            })),
-            source: 'places_api'
-          }), {
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
-      }
+      expandedUrl = await expandShortUrl(url);
+      console.log('Expanded URL:', expandedUrl);
+    } catch (e) {
+      console.error('URL expansion error:', e);
+    }
 
-      // 嘗試抓取頁面內容
-      const response = await fetch(expandedUrl || url, {
+    // 從 URL 中提取有用的資訊
+    const urlInfo = parseGoogleMapsUrl(expandedUrl);
+    console.log('URL Info:', JSON.stringify(urlInfo));
+
+    // 如果有 Place IDs，使用 Places API
+    if (urlInfo.placeIds && urlInfo.placeIds.length > 0 && context.env.GOOGLE_MAPS_API_KEY) {
+      const places = await fetchPlaceDetails(urlInfo.placeIds, context.env.GOOGLE_MAPS_API_KEY);
+      if (places.length > 0) {
+        return new Response(JSON.stringify({
+          spots: places.map(p => ({
+            name: p.name,
+            address: p.address,
+            coordinates: p.coordinates,
+            placeId: p.placeId
+          })),
+          source: 'places_api'
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // 如果 URL 包含地點名稱查詢
+    if (urlInfo.query) {
+      return new Response(JSON.stringify({
+        spots: [{ name: urlInfo.query }],
+        source: 'url_query'
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 嘗試抓取頁面內容
+    try {
+      const response = await fetch(expandedUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
-        }
+          'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8,ja;q=0.7',
+        },
+        redirect: 'follow'
       });
       
       if (response.ok) {
         pageContent = await response.text();
+        console.log('Page content length:', pageContent.length);
       }
     } catch (fetchError) {
       console.error('Fetch error:', fetchError);
-      // 繼續使用 AI 分析 URL 本身
     }
 
-    // 使用 AI 從頁面內容或 URL 提取景點名稱
+    // 使用 AI 分析
     const ai = new GoogleGenAI({ apiKey: context.env.GEMINI_API_KEY });
     
-    const prompt = pageContent 
-      ? `你是一位專業的資料分析師。請從以下 Google Maps 頁面內容中提取所有景點/地點名稱。
+    // 建立更詳細的 prompt
+    const prompt = `你是一位 Google Maps 資料分析專家。請從以下資訊中提取所有景點/地點名稱。
 
-## 頁面 URL
+## 原始 URL
 ${url}
 
-## 頁面內容（部分）
-${pageContent.slice(0, 15000)}
+## 展開後的 URL
+${expandedUrl}
 
-## 提取規則
-1. 提取所有具體的地點名稱（餐廳、景點、商店、車站等）
-2. 忽略廣告、推薦、或無關的內容
-3. 如果是清單頁面，提取清單中的所有地點
-4. 如果是單一地點頁面，提取該地點名稱及附近推薦的地點
-5. 保持原始名稱，不要翻譯或修改
+${pageContent ? `## 頁面內容
+${pageContent.slice(0, 20000)}` : ''}
 
-## 輸出格式
-返回 JSON 陣列，包含所有提取到的地點名稱。`
-      : `你是一位 Google Maps URL 分析專家。請分析以下 Google Maps URL，推測並提取可能的地點資訊。
+## 任務說明
+1. 這是一個 Google Maps 清單分享連結或地點連結
+2. 請從 URL 結構或頁面內容中識別所有地點名稱
+3. 如果是清單連結，請嘗試從頁面內容中提取清單內的所有地點
+4. 注意尋找類似這些模式的地點資訊：
+   - JSON 中的 "name" 欄位
+   - HTML 中的地點標題
+   - URL 中編碼的地點名稱
+   - 任何看起來像是店名、景點名、餐廳名的文字
+5. 保持原始名稱語言，不要翻譯
 
-## URL
-${url}
-
-## 分析任務
-1. 從 URL 結構中識別地點名稱、座標、或地點 ID
-2. 如果 URL 包含編碼的地點名稱，請解碼
-3. 如果 URL 包含座標，嘗試推測可能的地點名稱
-4. 如果是清單連結，嘗試識別清單主題並推測可能包含的典型地點
-
-## 輸出格式
-返回 JSON 陣列，包含可能的地點名稱。如果無法確定，返回空陣列。`;
+## 輸出要求
+返回一個 JSON 陣列，包含所有識別到的地點名稱字串。
+如果確實無法識別任何地點，返回空陣列 []。
+請只返回 JSON，不要有其他文字。`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -145,17 +157,23 @@ ${url}
     });
 
     const text = response.text;
+    console.log('AI response:', text);
+    
     if (!text) {
-      return new Response(JSON.stringify({ spots: [], source: 'ai_extraction' }), {
+      return new Response(JSON.stringify({ 
+        spots: [], 
+        source: 'ai_extraction',
+        debug: { expandedUrl, hasContent: pageContent.length > 0 }
+      }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
     const spotNames = JSON.parse(text) as string[];
-    const uniqueSpots = [...new Set(spotNames)].slice(0, 30);
+    const uniqueSpots = [...new Set(spotNames)].filter(name => name && name.trim()).slice(0, 30);
 
     return new Response(JSON.stringify({ 
-      spots: uniqueSpots.map(name => ({ name })),
+      spots: uniqueSpots.map(name => ({ name: name.trim() })),
       source: 'ai_extraction'
     }), {
       headers: { 'Content-Type': 'application/json' }
@@ -174,41 +192,55 @@ ${url}
 };
 
 /**
- * 展開短網址
+ * 展開短網址 - 支援多層重定向
  */
-async function expandShortUrl(url: string): Promise<string | null> {
+async function expandShortUrl(url: string): Promise<string> {
+  // 如果不是短網址，直接返回
   if (!url.includes('goo.gl') && !url.includes('maps.app.goo.gl')) {
     return url;
   }
   
-  try {
-    // 嘗試 HEAD 請求
-    let response = await fetch(url, {
-      method: 'HEAD',
-      redirect: 'manual'
-    });
-    
-    let location = response.headers.get('location');
-    
-    // 如果 HEAD 沒有返回 location，嘗試 GET
-    if (!location) {
-      response = await fetch(url, {
+  let currentUrl = url;
+  let maxRedirects = 5;
+  
+  while (maxRedirects > 0) {
+    try {
+      // 使用 GET 請求並手動處理重定向
+      const response = await fetch(currentUrl, {
         method: 'GET',
-        redirect: 'manual'
+        redirect: 'manual',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
       });
-      location = response.headers.get('location');
+      
+      // 檢查是否有重定向
+      const location = response.headers.get('location');
+      
+      if (location) {
+        console.log(`Redirect: ${currentUrl} -> ${location}`);
+        currentUrl = location;
+        
+        // 如果已經是完整的 Google Maps URL，停止
+        if (location.includes('google.com/maps') && !location.includes('goo.gl')) {
+          return location;
+        }
+        
+        maxRedirects--;
+      } else {
+        // 沒有重定向了，檢查最終 URL
+        if (response.url && response.url !== currentUrl) {
+          return response.url;
+        }
+        return currentUrl;
+      }
+    } catch (e) {
+      console.error('Redirect fetch error:', e);
+      return currentUrl;
     }
-    
-    // 可能有多層重定向
-    if (location && (location.includes('goo.gl') || location.includes('maps.app.goo.gl'))) {
-      return await expandShortUrl(location);
-    }
-    
-    return location || url;
-  } catch (e) {
-    console.error('Short URL expansion error:', e);
-    return url;
   }
+  
+  return currentUrl;
 }
 
 /**
@@ -218,25 +250,35 @@ function parseGoogleMapsUrl(url: string): {
   placeIds: string[]; 
   coordinates?: { lat: number; lng: number };
   query?: string;
+  listId?: string;
 } {
-  const result: { placeIds: string[]; coordinates?: { lat: number; lng: number }; query?: string } = {
+  const result: { 
+    placeIds: string[]; 
+    coordinates?: { lat: number; lng: number }; 
+    query?: string;
+    listId?: string;
+  } = {
     placeIds: []
   };
 
   try {
-    const urlObj = new URL(url);
-    
-    // 嘗試提取 Place ID
-    // 格式: /maps/place/.../@lat,lng,zoom/data=...!1s0x...:0x...
-    const placeIdMatch = url.match(/!1s(0x[a-f0-9]+:0x[a-f0-9]+)/gi);
-    if (placeIdMatch) {
-      result.placeIds = placeIdMatch.map(m => m.replace('!1s', ''));
+    // 嘗試提取 Place ID - 多種格式
+    // 格式1: !1s0x...:0x...
+    const placeIdMatch1 = url.match(/!1s(0x[a-f0-9]+:0x[a-f0-9]+)/gi);
+    if (placeIdMatch1) {
+      result.placeIds.push(...placeIdMatch1.map(m => m.replace('!1s', '')));
     }
 
-    // 另一種 Place ID 格式
-    const placeIdMatch2 = url.match(/place_id[=:]([A-Za-z0-9_-]+)/i);
+    // 格式2: place_id=...
+    const placeIdMatch2 = url.match(/place_id[=:]([A-Za-z0-9_-]+)/gi);
     if (placeIdMatch2) {
-      result.placeIds.push(placeIdMatch2[1]);
+      result.placeIds.push(...placeIdMatch2.map(m => m.replace(/place_id[=:]/i, '')));
+    }
+
+    // 格式3: ChIJ... (新版 Place ID)
+    const placeIdMatch3 = url.match(/ChIJ[A-Za-z0-9_-]+/g);
+    if (placeIdMatch3) {
+      result.placeIds.push(...placeIdMatch3);
     }
 
     // 提取座標
@@ -248,11 +290,37 @@ function parseGoogleMapsUrl(url: string): {
       };
     }
 
-    // 提取搜尋查詢
-    const queryMatch = url.match(/\/maps\/place\/([^/@]+)/);
-    if (queryMatch) {
-      result.query = decodeURIComponent(queryMatch[1].replace(/\+/g, ' '));
+    // 提取搜尋查詢 - 從 /place/ 路徑
+    const placeMatch = url.match(/\/maps\/place\/([^/@?]+)/);
+    if (placeMatch) {
+      result.query = decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
     }
+
+    // 提取搜尋查詢 - 從 /search/ 路徑
+    const searchMatch = url.match(/\/maps\/search\/([^/@?]+)/);
+    if (searchMatch) {
+      result.query = decodeURIComponent(searchMatch[1].replace(/\+/g, ' '));
+    }
+
+    // 提取清單 ID
+    const listMatch = url.match(/\/placelists\/list\/([^/?]+)/);
+    if (listMatch) {
+      result.listId = listMatch[1];
+    }
+
+    // 從 data 參數提取更多資訊
+    const dataMatch = url.match(/data=([^&]+)/);
+    if (dataMatch) {
+      const data = decodeURIComponent(dataMatch[1]);
+      // 嘗試從 data 中提取地點名稱
+      const nameMatch = data.match(/!2s([^!]+)/);
+      if (nameMatch && !result.query) {
+        result.query = decodeURIComponent(nameMatch[1]);
+      }
+    }
+
+    // 去重
+    result.placeIds = [...new Set(result.placeIds)];
 
   } catch (e) {
     console.error('URL parsing error:', e);
