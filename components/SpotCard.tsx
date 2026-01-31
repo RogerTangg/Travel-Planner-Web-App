@@ -432,21 +432,20 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
           <div className="flex flex-row gap-3 items-center">
             {/* 景點照片縮圖 (Spot Photo Thumbnail) - 行程模式使用漸層融合設計 */}
             {spot.photos && spot.photos.length > 0 && (
-              <div className={`relative flex-shrink-0 ${compact ? 'w-12 h-12' : 'w-[72px] h-[72px]'} rounded-xl overflow-hidden ${!compact ? 'shadow-md ring-2 ring-white' : 'shadow-sm'}`}>
+              <div className={`relative flex-shrink-0 ${compact ? 'w-12 h-12' : 'w-[68px] h-[68px]'}`}>
                 {/* 漸層背景光暈效果 - 僅行程模式 */}
                 {!compact && (
-                  <div className="absolute -inset-1 bg-gradient-to-br from-sakura-200/50 via-purple-200/30 to-blue-200/50 rounded-xl blur-sm -z-10" />
+                  <div className="absolute -inset-1 bg-gradient-to-br from-pink-300/60 via-purple-300/40 to-blue-300/60 rounded-2xl blur-md" />
                 )}
-                <SpotPhotoGallery
-                  photos={spot.photos}
-                  spotName={spot.name}
-                  thumbnailSize={compact ? 'sm' : 'md'}
-                  className="w-full h-full"
-                />
-                {/* 漸層遮罩效果 - 僅在行程模式顯示 */}
-                {!compact && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none rounded-xl" />
-                )}
+                {/* 照片容器 */}
+                <div className={`relative w-full h-full rounded-xl overflow-hidden ${!compact ? 'shadow-lg ring-2 ring-white/80' : 'shadow-sm'}`}>
+                  <SpotPhotoGallery
+                    photos={spot.photos}
+                    spotName={spot.name}
+                    thumbnailSize={compact ? 'sm' : 'md'}
+                    className="w-full h-full"
+                  />
+                </div>
               </div>
             )}
             

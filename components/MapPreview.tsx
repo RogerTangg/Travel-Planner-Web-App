@@ -458,9 +458,9 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
           : '';
         
         const content = `
-          <div style="min-width: 260px; max-width: 300px; overflow: hidden; background: white; padding: 12px;">
+          <div style="min-width: 260px; max-width: 300px; overflow: hidden; background: white; padding: 8px 12px 12px 12px;">
             ${hasPhotos ? `
-              <div style="position: relative; width: 100%; height: 150px; margin-bottom: 12px; border-radius: 12px; overflow: hidden;">
+              <div style="position: relative; width: 100%; height: 140px; margin-bottom: 10px; border-radius: 10px; overflow: hidden;">
                 <img 
                   src="${photoUrl}" 
                   alt="${spot.name}"
@@ -468,7 +468,7 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
                   onerror="this.parentElement.style.display='none'"
                 />
                 ${spot.photos!.length > 1 ? `
-                  <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; padding: 3px 8px; border-radius: 8px; backdrop-filter: blur(4px);">
+                  <div style="position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; padding: 2px 6px; border-radius: 6px; backdrop-filter: blur(4px);">
                     📷 ${spot.photos!.length}
                   </div>
                 ` : ''}
