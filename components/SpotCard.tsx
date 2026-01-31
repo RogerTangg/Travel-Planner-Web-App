@@ -398,10 +398,10 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
       `}
       onClick={() => onClick(spot)}
     >
-      <div className="px-3 py-2 flex items-center gap-3">
+      <div className="px-3 py-2 flex items-stretch gap-3">
         {/* Time Column (Only in Timeline) - Compact Design */}
         {!compact && (
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0 self-center">
             {/* Drag Handle */}
             <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mr-1">
               <GripVertical size={14} />

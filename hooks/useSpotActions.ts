@@ -198,32 +198,32 @@ export const useSpotActions = () => {
         showToast(`📍 識別到 ${extracted} 個景點`, 'info');
       }
 
-      // 建立景點卡片
+      // 建立景點卡片（所有景點都標記為 isLoading，等待 AI 分析補充）
       const newSpots = result.spots.map(spot => {
+        const baseName = spot.verifiedName || spot.name;
+        const placeholder = createPlaceholderSpot(baseName);
+        
         if (spot.verified && spot.coordinates && spot.address) {
-          // 已驗證：直接使用 Places API 的資料
+          // 已驗證：先填入 Places API 的座標和地址
           return {
-            ...createPlaceholderSpot(spot.verifiedName || spot.name),
+            ...placeholder,
             coordinates: { lat: spot.coordinates.lat, lng: spot.coordinates.lng },
             address: spot.address,
             placeId: spot.placeId,
-            isLoading: false
+            isLoading: true  // 仍需 AI 分析補充描述、分類、照片
           };
         }
-        return createPlaceholderSpot(spot.name);
+        return placeholder;
       });
 
       batchAddSpots(newSpots);
 
-      // 使用 p-limit 控制並行，只對未驗證的景點進行 AI 分析
-      const unverifiedSpots = newSpots.filter((_, index) => !result.spots[index].verified);
-      if (unverifiedSpots.length > 0) {
-        await Promise.all(
-          unverifiedSpots.map(s =>
-            aiRequestLimit(() => analyzeAndFillSpot(s.id, s.name))
-          )
-        );
-      }
+      // 所有景點都需要 AI 分析來補充描述、分類和照片
+      await Promise.all(
+        newSpots.map(s =>
+          aiRequestLimit(() => analyzeAndFillSpot(s.id, s.name))
+        )
+      );
 
     } catch (error) {
       console.error('File processing error', error);
