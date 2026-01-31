@@ -398,10 +398,10 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
       `}
       onClick={() => onClick(spot)}
     >
-      <div className="px-3 py-2 flex items-center gap-3">
+      <div className="px-3 py-2 flex items-start gap-3">
         {/* Time Column (Only in Timeline) - Compact Design */}
         {!compact && (
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0 mt-2.5">
             {/* Drag Handle */}
             <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mr-1">
               <GripVertical size={14} />
@@ -429,7 +429,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
         {/* Main Content */}
         <div className="flex-1 min-w-0">
           {/* Header with Photo - 根據 compact 模式調整布局 */}
-          <div className="flex flex-row gap-3 items-center">
+          <div className="flex flex-row gap-3 items-start">
             {/* 景點照片縮圖 (Spot Photo Thumbnail) */}
             {spot.photos && spot.photos.length > 0 && (
               <div className={`flex-shrink-0 ${compact ? 'w-12 h-12' : 'w-14 h-14'} rounded-lg overflow-hidden shadow-sm`}>
@@ -443,7 +443,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
             )}
             
             {/* 標題與資訊區塊 */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 pt-0.5">
               {/* Header */}
               <div className="flex justify-between items-start gap-2">
                 <h4 className="font-bold text-gray-800 text-sm leading-tight">
