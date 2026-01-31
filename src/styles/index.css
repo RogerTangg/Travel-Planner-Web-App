@@ -78,17 +78,27 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
-    zoom: 1.1;
   }
 
   body {
     @apply bg-warm-50 text-warm-800 font-sans;
     @apply antialiased;
+    /* 確保頁面不會產生滾動條 */
+    overflow: hidden;
   }
 
   /* 所有按鈕預設顯示手型鼠標 */
   button {
     cursor: pointer;
+  }
+
+  /* 根容器放大 10% 但不產生滾動條 */
+  #root {
+    transform: scale(1.1);
+    transform-origin: top left;
+    width: 90.91vw;
+    /* 100 / 1.1 = 90.91 */
+    height: 90.91vh;
   }
 }
 
