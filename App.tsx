@@ -34,7 +34,6 @@ import { Sidebar, SchedulePanel, MapPanel } from './components/layout';
 import { ToastContainer } from './components/common';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { SpotCard } from './components/SpotCard';
-import { SpotDetailModal } from './components/SpotDetailModal';
 import { PhotoWall } from './components/PhotoWall';
 
 // --- Drag Overlay 設定 ---
@@ -192,9 +191,6 @@ const AppContent: React.FC = memo(() => {
   // 使用個別選擇器避免物件參考變更導致的無限循環
   const mobileView = useUIStore(state => state.mobileView);
   const setMobileView = useUIStore(state => state.setMobileView);
-  const spotDetailModalIsOpen = useUIStore(state => state.spotDetailModal.isOpen);
-  const spotDetailModalSpot = useUIStore(state => state.spotDetailModal.spot);
-  const closeSpotDetailModal = useUIStore(state => state.closeSpotDetailModal);
   const isPhotoWallOpen = useUIStore(state => state.isPhotoWallOpen);
   const closePhotoWall = useUIStore(state => state.closePhotoWall);
   const {
@@ -267,12 +263,6 @@ const AppContent: React.FC = memo(() => {
       {/* 確認對話框 */}
       <ConfirmDialogContainer />
 
-      {/* 景點詳情 Modal */}
-      <SpotDetailModal
-        spot={spotDetailModalSpot}
-        isOpen={spotDetailModalIsOpen}
-        onClose={closeSpotDetailModal}
-      />
 
       {/* 照片牆 Modal */}
       {currentTrip && (

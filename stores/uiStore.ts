@@ -8,7 +8,6 @@
  * - 確認對話框
  * - 篩選器狀態
  * - 響應式視圖狀態
- * - 景點詳情 Modal
  * - 照片牆 Modal
  * 
  * @module stores/uiStore
@@ -43,21 +42,16 @@ interface UIState {
   activeSpot: Spot | null;
   setDragState: (id: string | null, spot: Spot | null) => void;
   clearDragState: () => void;
-  
+
   // 選取狀態 (Selection State)
   selectedSpot: Spot | null;
   setSelectedSpot: (spot: Spot | null) => void;
-  
-  // 景點詳情 Modal (Spot Detail Modal)
-  spotDetailModal: { isOpen: boolean; spot: Spot | null };
-  openSpotDetailModal: (spot: Spot) => void;
-  closeSpotDetailModal: () => void;
-  
+
   // 照片牆 Modal (Photo Wall Modal)
   isPhotoWallOpen: boolean;
   openPhotoWall: () => void;
   closePhotoWall: () => void;
-  
+
   // 載入狀態 (Loading State)
   isAnalyzing: boolean;
   isOptimizing: string | null; // dayId 或 null
@@ -65,30 +59,30 @@ interface UIState {
   setIsAnalyzing: (value: boolean) => void;
   setIsOptimizing: (dayId: string | null) => void;
   setIsScheduling: (value: boolean) => void;
-  
+
   // 面板狀態 (Panel State)
   showTripList: boolean;
   setShowTripList: (value: boolean) => void;
   toggleTripList: () => void;
-  
+
   // 輸入模式 (Input Mode)
   isManualMode: boolean;
   setIsManualMode: (value: boolean) => void;
   toggleManualMode: () => void;
-  
+
   // 篩選器 (Filters)
   selectedTagFilter: string | null;
   setSelectedTagFilter: (tag: string | null) => void;
-  
+
   // 響應式視圖狀態 (Responsive View State)
   mobileView: MobileView;
   setMobileView: (view: MobileView) => void;
-  
+
   // Toast 通知 (Toast Notification)
   toast: ToastState;
   showToast: (message: string, type?: ToastState['type']) => void;
   hideToast: () => void;
-  
+
   // 確認對話框 (Confirm Dialog)
   confirmState: ConfirmState | null;
   showConfirm: (config: Omit<ConfirmState, 'isOpen'>) => void;
@@ -101,21 +95,16 @@ export const useUIStore = create<UIState>((set, get) => ({
   activeSpot: null,
   setDragState: (id, spot) => set({ activeId: id, activeSpot: spot }),
   clearDragState: () => set({ activeId: null, activeSpot: null }),
-  
+
   // --- 選取狀態 (Selection State) ---
   selectedSpot: null,
   setSelectedSpot: (spot) => set({ selectedSpot: spot }),
-  
-  // --- 景點詳情 Modal (Spot Detail Modal) ---
-  spotDetailModal: { isOpen: false, spot: null },
-  openSpotDetailModal: (spot) => set({ spotDetailModal: { isOpen: true, spot } }),
-  closeSpotDetailModal: () => set({ spotDetailModal: { isOpen: false, spot: null } }),
-  
+
   // --- 照片牆 Modal (Photo Wall Modal) ---
   isPhotoWallOpen: false,
   openPhotoWall: () => set({ isPhotoWallOpen: true }),
   closePhotoWall: () => set({ isPhotoWallOpen: false }),
-  
+
   // --- 載入狀態 (Loading State) ---
   isAnalyzing: false,
   isOptimizing: null,
@@ -123,25 +112,25 @@ export const useUIStore = create<UIState>((set, get) => ({
   setIsAnalyzing: (value) => set({ isAnalyzing: value }),
   setIsOptimizing: (dayId) => set({ isOptimizing: dayId }),
   setIsScheduling: (value) => set({ isScheduling: value }),
-  
+
   // --- 面板狀態 (Panel State) ---
   showTripList: false,
   setShowTripList: (value) => set({ showTripList: value }),
   toggleTripList: () => set(state => ({ showTripList: !state.showTripList })),
-  
+
   // --- 輸入模式 (Input Mode) ---
   isManualMode: false,
   setIsManualMode: (value) => set({ isManualMode: value }),
   toggleManualMode: () => set(state => ({ isManualMode: !state.isManualMode })),
-  
+
   // --- 篩選器 (Filters) ---
   selectedTagFilter: null,
   setSelectedTagFilter: (tag) => set({ selectedTagFilter: tag }),
-  
+
   // --- 響應式視圖狀態 (Responsive View State) ---
   mobileView: 'spots',
   setMobileView: (view) => set({ mobileView: view }),
-  
+
   // --- Toast 通知 (Toast Notification) ---
   toast: { isVisible: false, message: '', type: 'info' },
   showToast: (message, type = 'info') => {
@@ -151,14 +140,14 @@ export const useUIStore = create<UIState>((set, get) => ({
       get().hideToast();
     }, 4000);
   },
-  hideToast: () => set(state => ({ 
-    toast: { ...state.toast, isVisible: false } 
+  hideToast: () => set(state => ({
+    toast: { ...state.toast, isVisible: false }
   })),
-  
+
   // --- 確認對話框 (Confirm Dialog) ---
   confirmState: null,
-  showConfirm: (config) => set({ 
-    confirmState: { ...config, isOpen: true } 
+  showConfirm: (config) => set({
+    confirmState: { ...config, isOpen: true }
   }),
   hideConfirm: () => set({ confirmState: null })
 }));
