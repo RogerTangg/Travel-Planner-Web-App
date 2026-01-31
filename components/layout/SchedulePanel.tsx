@@ -38,7 +38,7 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
   const { handleOptimizeDay, handleDeleteSpot, handleUpdateSpot, handleDuplicateSpot } = useSpotActions();
 
   if (!currentTrip) return null;
-
+  
   const day = currentTrip.days.find(d => d.id === dayId);
   if (!day) return null;
 
@@ -65,7 +65,7 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
           {dayIndex + 1}
         </div>
       </div>
-
+      
       {/* 標題列 (Header) */}
       <div className="flex items-center justify-between mb-4 pl-2">
         <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
             </span>
           )}
         </div>
-        <button
+        <button 
           onClick={() => handleOptimizeDay(dayId)}
           disabled={day.spots.length < 2}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600 hover:text-sakura-600 hover:border-sakura-200 transition-all disabled:opacity-50"
@@ -88,7 +88,7 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
       </div>
 
       {/* 放置區域 (Drop Area) - 含背景圖 */}
-      <DroppableContainer
+      <DroppableContainer 
         id={dayId}
         className="min-h-[100px] bg-white rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden"
         active={activeId !== null}
@@ -104,11 +104,11 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
             <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/80 to-white/95" />
           </div>
         )}
-
+        
         {/* 內容層 */}
         <div className="relative z-10 p-4">
           {isOptimizing === dayId && <LoadingOverlay />}
-          <SortableContext
+          <SortableContext 
             id={dayId}
             items={day.spots.map(s => s.id)}
             strategy={verticalListSortingStrategy}
@@ -118,8 +118,8 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
             ) : (
               day.spots.map((spot, index) => (
                 <div key={spot.id} className="relative">
-                  <SpotCard
-                    spot={spot}
+                  <SpotCard 
+                    spot={spot} 
                     onDelete={handleDeleteSpot}
                     onClick={setSelectedSpot}
                     onUpdate={handleUpdateSpot}
@@ -180,7 +180,7 @@ export const SchedulePanel: React.FC = () => {
   // 收回全部景點 (Collect All Spots)
   const handleCollectAllSpots = () => {
     if (totalScheduledSpots === 0) return;
-
+    
     showConfirm({
       title: '收回全部景點',
       message: `確定要將所有 ${totalScheduledSpots} 個已排程景點收回至待安排清單嗎？`,
@@ -202,12 +202,12 @@ export const SchedulePanel: React.FC = () => {
           <span className="hidden xs:inline">行程總覽</span>
           <span className="xs:hidden">行程</span>
         </h2>
-
+        
         <div className="flex items-center gap-2 md:gap-3">
           <div className="text-[10px] md:text-xs text-gray-400">
             {totalScheduledSpots} 個行程點
           </div>
-
+          
           {/* 照片牆按鈕 */}
           {totalPhotos > 0 && (
             <button
@@ -220,7 +220,7 @@ export const SchedulePanel: React.FC = () => {
               <span className="text-sakura-400">{totalPhotos}</span>
             </button>
           )}
-
+          
           {totalScheduledSpots > 0 && (
             <button
               onClick={handleCollectAllSpots}
@@ -231,7 +231,7 @@ export const SchedulePanel: React.FC = () => {
               <span className="hidden sm:inline">收回全部</span>
             </button>
           )}
-
+          
           <div className="hidden sm:flex items-center gap-1 text-[10px] md:text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
             <Save size={12} />
             自動儲存
@@ -243,7 +243,7 @@ export const SchedulePanel: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-24 md:pb-8">
         <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
           {currentTrip.days.map((day, dayIndex) => (
-            <DayCard
+            <DayCard 
               key={day.id}
               dayId={day.id}
               dayIndex={dayIndex}
