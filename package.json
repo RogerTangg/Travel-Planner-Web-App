@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "concurrently \"wrangler pages dev dist --port 8788\" \"vite\"",
     "dev:secure": "concurrently \"npm run server\" \"npm run dev\"",
     "server": "tsx watch server/index.ts",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "wrangler pages dev dist",
+    "pages:dev": "wrangler pages dev dist"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

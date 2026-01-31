@@ -6,6 +6,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
+    // 開發環境代理設定：將 /api 請求轉發到 Cloudflare Functions 開發伺服器
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8788',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',

@@ -46,12 +46,18 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
   const [loadError, setLoadError] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState<Set<number>>(new Set([0]));
 
-  // 無照片時顯示佔位符 (Placeholder when no photos)
+  const config = THUMBNAIL_CONFIG[thumbnailSize];
+
+  // 無照片時不顯示 (Don't render if no photos)
   if (!photos || photos.length === 0) {
     return null;
   }
 
-  const config = THUMBNAIL_CONFIG[thumbnailSize];
+  // 確保有有效的 photoReference (Ensure valid photo reference)
+  const validPhotos = photos.filter(p => p && p.photoReference);
+  if (validPhotos.length === 0) {
+    return null;
+  }
 
   // 處理縮圖點擊 (Handle thumbnail click)
   const handleThumbnailClick = useCallback((e: React.MouseEvent) => {
@@ -102,14 +108,14 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
     if (e.key === 'Escape') {
       setIsGalleryOpen(false);
     } else if (e.key === 'ArrowLeft') {
-      setCurrentIndex(prev => (prev > 0 ? prev - 1 : photos.length - 1));
+      setCurrentIndex(prev => (prev > 0 ? prev - 1 : validPhotos.length - 1));
     } else if (e.key === 'ArrowRight') {
-      setCurrentIndex(prev => (prev < photos.length - 1 ? prev + 1 : 0));
+      setCurrentIndex(prev => (prev < validPhotos.length - 1 ? prev + 1 : 0));
     }
-  }, [photos.length]);
+  }, [validPhotos.length]);
 
-  const thumbnailUrl = getSpotPhotoUrl(photos[0].photoReference, config.width);
-  const hasMultiplePhotos = photos.length > 1;
+  const thumbnailUrl = getSpotPhotoUrl(validPhotos[0].photoReference, config.width);
+  const hasMultiplePhotos = validPhotos.length > 1;
 
   return (
     <>
@@ -149,7 +155,7 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
         {showCount && hasMultiplePhotos && (
           <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
             <Camera size={10} />
-            <span>{photos.length}</span>
+            <span>{validPhotos.length}</span>
           </div>
         )}
 
@@ -183,7 +189,7 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
           {/* 照片計數 (Photo counter) */}
           <div className="absolute top-4 left-4 text-white/80 text-sm">
             <span className="font-medium">{currentIndex + 1}</span>
-            <span className="text-white/50"> / {photos.length}</span>
+            <span className="text-white/50"> / {validPhotos.length}</span>
           </div>
 
           {/* 景點名稱 (Spot name) */}
@@ -214,7 +220,7 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
               </div>
             ) : (
               <img
-                src={getSpotPhotoUrl(photos[currentIndex].photoReference, 1200)}
+                src={getSpotPhotoUrl(validPhotos[currentIndex].photoReference, 1200)}
                 alt={`${spotName} 照片 ${currentIndex + 1}`}
                 className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
                 onError={() => handleImageError(currentIndex)}
@@ -234,9 +240,9 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
           )}
 
           {/* 縮圖列表 (Thumbnail strip) */}
-          {hasMultiplePhotos && photos.length <= 10 && (
+          {hasMultiplePhotos && validPhotos.length <= 10 && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-              {photos.map((photo, index) => (
+              {validPhotos.map((photo, index) => (
                 <button
                   key={photo.photoReference}
                   onClick={(e) => {
@@ -262,9 +268,9 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
           )}
 
           {/* 照片歸屬 (Photo attribution) */}
-          {photos[currentIndex]?.attributions && photos[currentIndex].attributions!.length > 0 && (
+          {validPhotos[currentIndex]?.attributions && validPhotos[currentIndex].attributions!.length > 0 && (
             <div className="absolute bottom-4 right-4 text-white/50 text-xs max-w-xs truncate">
-              📷 {photos[currentIndex].attributions![0]}
+              📷 {validPhotos[currentIndex].attributions![0]}
             </div>
           )}
         </div>
