@@ -25,9 +25,9 @@ interface SpotPhotoGalleryProps {
 
 // 縮圖尺寸設定 (Thumbnail size configuration)
 const THUMBNAIL_CONFIG = {
-  sm: { width: 400, containerClass: 'w-16 h-16' },
-  md: { width: 400, containerClass: 'w-24 h-24' },
-  lg: { width: 800, containerClass: 'w-32 h-32' },
+  sm: { width: 400, containerClass: 'w-14 h-14 rounded-xl' },
+  md: { width: 400, containerClass: 'w-16 h-16 rounded-xl' },
+  lg: { width: 800, containerClass: 'w-24 h-24 rounded-xl' },
 };
 
 /**
@@ -121,7 +121,7 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
     <>
       {/* 縮圖預覽 (Thumbnail Preview) */}
       <div 
-        className={`relative rounded-lg overflow-hidden cursor-pointer group ${config.containerClass} ${className}`}
+        className={`relative overflow-hidden cursor-pointer group ${config.containerClass} ${className}`}
         onClick={handleThumbnailClick}
         role="button"
         aria-label={`查看 ${spotName} 的照片`}
@@ -130,20 +130,20 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
       >
         {/* 縮圖 */}
         {loadError.has(0) ? (
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <ImageIcon size={20} className="text-gray-300" />
+          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-xl">
+            <ImageIcon size={18} className="text-gray-400" />
           </div>
         ) : (
           <>
             {isLoading.has(0) && (
-              <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
-                <Camera size={16} className="text-gray-300" />
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse flex items-center justify-center rounded-xl">
+                <Camera size={14} className="text-gray-400" />
               </div>
             )}
             <img
               src={thumbnailUrl}
               alt={`${spotName} 照片`}
-              className="w-full h-full object-cover transition-transform group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 rounded-xl"
               onLoad={() => handleImageLoad(0)}
               onError={() => handleImageError(0)}
               loading="lazy"
@@ -153,18 +153,14 @@ export const SpotPhotoGallery: React.FC<SpotPhotoGalleryProps> = memo(({
 
         {/* 照片數量標籤 (Photo count badge) */}
         {showCount && hasMultiplePhotos && (
-          <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-            <Camera size={10} />
+          <div className="absolute bottom-1 right-1 bg-black/50 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5 rounded-lg flex items-center gap-0.5 font-medium">
+            <Camera size={9} />
             <span>{validPhotos.length}</span>
           </div>
         )}
 
         {/* Hover 遮罩 (Hover overlay) */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-          <span className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity font-medium">
-            查看照片
-          </span>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
       </div>
 
       {/* 完整照片畫廊 Modal (Full Gallery Modal) */}

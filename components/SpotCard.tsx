@@ -1,11 +1,12 @@
 import React, { useState, useMemo, memo, useCallback } from 'react';
 import { Spot, SpotCategory } from '../types';
-import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation, Copy, Camera } from 'lucide-react';
+import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation, Copy, Camera, Eye } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { TimePicker } from './TimePicker';
 import { geocodeAddress } from '../services/geminiService';
 import { SpotPhotoGallery, SpotPhotoStrip } from './SpotPhotoGallery';
+import { useUIStore } from '../stores';
 
 interface SpotCardProps {
   spot: Spot;
@@ -427,34 +428,39 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
 
         {/* Main Content */}
         <div className="flex-1 min-w-0">
-          {/* Header with Photo */}
-          <div className="flex gap-2">
+          {/* Header with Photo - 根據 compact 模式調整布局 */}
+          <div className={`flex ${compact ? 'flex-row gap-3 items-start' : 'flex-row gap-3'}`}>
             {/* 景點照片縮圖 (Spot Photo Thumbnail) */}
             {spot.photos && spot.photos.length > 0 && (
-              <SpotPhotoGallery
-                photos={spot.photos}
-                spotName={spot.name}
-                thumbnailSize="sm"
-                className="flex-shrink-0"
-              />
+              <div className={`relative flex-shrink-0 ${compact ? 'w-14 h-14' : 'w-16 h-16'} rounded-xl overflow-hidden shadow-sm`}>
+                <SpotPhotoGallery
+                  photos={spot.photos}
+                  spotName={spot.name}
+                  thumbnailSize={compact ? 'sm' : 'md'}
+                  className="w-full h-full"
+                />
+                {/* 漸層遮罩效果 - 僅在行程模式顯示 */}
+                {!compact && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none rounded-xl" />
+                )}
+              </div>
             )}
-
+            
             {/* 標題與資訊區塊 */}
             <div className="flex-1 min-w-0">
               {/* Header */}
-              <div className="flex justify-between items-center gap-2">
-                <h4 className="font-bold text-gray-800 text-sm truncate">
-                  {spot.name}
-                  {spot.isManual && <span className="ml-1 text-[10px] text-amber-500">(手動)</span>}
+              <div className="flex justify-between items-start gap-2">
+                <h4 className="font-bold text-gray-800 text-sm leading-tight">
+                  <span className="line-clamp-1">{spot.name}</span>
+                  {spot.isManual && <span className="ml-1 text-[10px] text-amber-500 font-medium">(手動)</span>}
                 </h4>
-                <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full border flex items-center gap-0.5 font-medium ${getCategoryColor(spot.category)}`}>
+                <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-md border flex items-center gap-0.5 font-medium ${getCategoryColor(spot.category)}`}>
                   {getIcon(spot.category)}
-                  <span className="truncate max-w-[50px]">{spot.category}</span>
                 </span>
               </div>
 
               {/* Description - Single Line */}
-              <p className="text-[11px] text-gray-500 truncate leading-relaxed mt-1">
+              <p className="text-[11px] text-gray-500 line-clamp-1 leading-relaxed mt-0.5">
                 {spot.description}
               </p>
 
@@ -462,7 +468,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
               {spot.address && (
                 <div className="flex items-center gap-1 mt-1">
                   <Navigation size={10} className="text-gray-400 flex-shrink-0" />
-                  <p className="text-[10px] text-gray-400 truncate">
+                  <p className="text-[10px] text-gray-400 line-clamp-1">
                     {spot.address}
                   </p>
                 </div>
@@ -489,6 +495,18 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
           <div className="mt-2 flex items-center justify-end">
             {/* Action Buttons */}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* 查看詳情按鈕 */}
+              <button
+                onClick={(e) => {
+                  stopPropagation(e);
+                  useUIStore.getState().openSpotDetailModal(spot);
+                }}
+                onPointerDown={stopPropagation}
+                className="p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 rounded-md transition-colors cursor-pointer"
+                title="查看詳情"
+              >
+                <Eye size={13} />
+              </button>
               {onDuplicate && (
                 <button
                   onClick={(e) => {

@@ -454,49 +454,50 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
         // 檢查是否有照片
         const hasPhotos = spot.photos && spot.photos.length > 0;
         const photoUrl = hasPhotos 
-          ? `/api/place-photos?ref=${encodeURIComponent(spot.photos![0].photoReference)}&w=300`
+          ? `/api/place-photos?ref=${encodeURIComponent(spot.photos![0].photoReference)}&w=400`
           : '';
         
         const content = `
-          <div style="min-width: 220px; max-width: 300px; overflow: hidden;">
+          <div style="min-width: 240px; max-width: 300px; overflow: hidden; border-radius: 12px; background: white;">
             ${hasPhotos ? `
-              <div style="position: relative; width: 100%; height: 120px; overflow: hidden; margin: -8px -8px 8px -8px; border-radius: 8px 8px 0 0;">
+              <div style="position: relative; width: 100%; padding-top: 56.25%; overflow: hidden;">
                 <img 
                   src="${photoUrl}" 
                   alt="${spot.name}"
-                  style="width: 100%; height: 100%; object-fit: cover;"
+                  style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 12px 12px 0 0;"
                   onerror="this.parentElement.style.display='none'"
                 />
-                <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: linear-gradient(transparent, rgba(0,0,0,0.6));"></div>
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 50%; background: linear-gradient(transparent, rgba(0,0,0,0.5)); border-radius: 0 0 0 0;"></div>
                 ${spot.photos!.length > 1 ? `
-                  <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px;">
+                  <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; padding: 3px 8px; border-radius: 12px; backdrop-filter: blur(4px);">
                     📷 ${spot.photos!.length}
                   </div>
                 ` : ''}
               </div>
             ` : ''}
-            <div style="padding: ${hasPhotos ? '0 8px 8px 8px' : '8px'};">
-              <div style="display: flex; align-items: center; gap: 8px; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid ${color}40;">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: ${color};"></div>
-                <span style="font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background-color: ${color}20; color: ${color};">
+            <div style="padding: 12px;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background-color: ${color};"></div>
+                <span style="font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 6px; background-color: ${color}15; color: ${color};">
                   ${spot.category}
                 </span>
               </div>
-              <h3 style="font-weight: bold; font-size: 14px; color: #1f2937; margin-bottom: 4px;">
+              <h3 style="font-weight: 700; font-size: 15px; color: #1f2937; margin-bottom: 6px; line-height: 1.3;">
                 ${spot.name}
               </h3>
-              <p style="font-size: 12px; color: #6b7280; line-height: 1.4; margin-bottom: 8px;">
+              <p style="font-size: 12px; color: #6b7280; line-height: 1.5; margin-bottom: 10px;">
                 ${spot.description.slice(0, 80)}${spot.description.length > 80 ? '...' : ''}
               </p>
               ${spot.address ? `
-                <p style="font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px;">
-                  📍 ${spot.address}
+                <p style="font-size: 11px; color: #9ca3af; display: flex; align-items: flex-start; gap: 4px; line-height: 1.4;">
+                  <span style="flex-shrink: 0;">📍</span>
+                  <span>${spot.address}</span>
                 </p>
               ` : ''}
               ${(spot.startTime || spot.endTime) ? `
-                <div style="display: flex; align-items: center; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f3f4f6;">
-                  <span style="font-size: 10px; color: #9ca3af;">🕐</span>
-                  <span style="font-size: 12px; font-weight: 500; color: #4b5563;">
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f3f4f6;">
+                  <span style="font-size: 11px; color: #9ca3af;">🕐</span>
+                  <span style="font-size: 12px; font-weight: 600; color: #4b5563;">
                     ${spot.startTime || '--:--'} ~ ${spot.endTime || '--:--'}
                   </span>
                 </div>
