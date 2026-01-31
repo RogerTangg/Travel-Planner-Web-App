@@ -235,8 +235,8 @@ const SpotSearchInput: React.FC = memo(() => {
           value={newSpotName}
           onChange={(e) => setNewSpotName(e.target.value)}
           className={`w-full pl-10 pr-4 py-3 bg-gray-50 border-2 rounded-xl text-sm focus:bg-white focus:ring-2 outline-none transition-all ${isManualMode
-              ? 'border-amber-300 focus:ring-amber-200 focus:border-amber-400'
-              : 'border-gray-200 focus:ring-sakura-200 focus:border-sakura-300'
+            ? 'border-amber-300 focus:ring-amber-200 focus:border-amber-400'
+            : 'border-gray-200 focus:ring-sakura-200 focus:border-sakura-300'
             }`}
         />
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -248,8 +248,8 @@ const SpotSearchInput: React.FC = memo(() => {
           type="submit"
           disabled={!newSpotName.trim() || (isAnalyzing && !isManualMode)}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg shadow-sm hover:shadow-md border-2 disabled:opacity-50 font-medium transition-all ${isManualMode
-              ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
-              : 'bg-sakura-50 text-sakura-600 border-sakura-200 hover:bg-sakura-100'
+            ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+            : 'bg-sakura-50 text-sakura-600 border-sakura-200 hover:bg-sakura-100'
             }`}
         >
           {isAnalyzing && newSpotName && !isManualMode ? (
@@ -268,8 +268,8 @@ const SpotSearchInput: React.FC = memo(() => {
           onClick={toggleManualMode}
           title={isManualMode ? "切換為 AI 模式" : "切換為手動模式"}
           className={`px-2.5 py-2 rounded-lg shadow-sm hover:shadow border-2 transition-all ${isManualMode
-              ? 'bg-amber-100 text-amber-600 border-amber-300'
-              : 'bg-white text-gray-400 hover:text-amber-500 border-gray-200 hover:border-amber-200'
+            ? 'bg-amber-100 text-amber-600 border-amber-300'
+            : 'bg-white text-gray-400 hover:text-amber-500 border-gray-200 hover:border-amber-200'
             }`}
         >
           <PenLine size={16} />
@@ -340,9 +340,21 @@ QuickModules.displayName = 'QuickModules';
  * 標籤篩選子元件 (Tag Filter)
  */
 const TagFilter: React.FC = memo(() => {
-  const allTags = useTripStore(state => state.getAllTags());
+  const trips = useTripStore(state => state.trips);
+  const currentTripId = useTripStore(state => state.currentTripId);
   const selectedTagFilter = useUIStore(state => state.selectedTagFilter);
   const setSelectedTagFilter = useUIStore(state => state.setSelectedTagFilter);
+
+  // 使用 useMemo 計算 allTags，避免每次返回新陣列導致無限迴圈
+  const allTags = useMemo(() => {
+    const currentTrip = trips.find(t => t.id === currentTripId);
+    if (!currentTrip) return [];
+    const tagSet = new Set<string>();
+    [...currentTrip.unscheduledSpots, ...currentTrip.days.flatMap(d => d.spots)].forEach(spot => {
+      (spot.tags || []).forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [trips, currentTripId]);
 
   if (allTags.length === 0) return null;
 
@@ -367,8 +379,8 @@ const TagFilter: React.FC = memo(() => {
             key={tag}
             onClick={() => setSelectedTagFilter(selectedTagFilter === tag ? null : tag)}
             className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${selectedTagFilter === tag
-                ? 'bg-sakura-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-sakura-100'
+              ? 'bg-sakura-500 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-sakura-100'
               }`}
           >
             {tag}
