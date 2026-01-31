@@ -167,7 +167,7 @@ export const SchedulePanel: React.FC = () => {
       </div>
 
       {/* 行程內容區 (Schedule Content) - 手機版留底部空間 */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-20 md:pb-8">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-24 md:pb-8">
         <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
           {currentTrip.days.map((day, dayIndex) => (
             <DayCard 
