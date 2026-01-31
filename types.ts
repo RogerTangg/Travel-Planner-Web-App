@@ -18,6 +18,17 @@ export interface Coordinates {
   lng: number;
 }
 
+/**
+ * 景點照片資訊 (Spot Photo Information)
+ * 包含 Google Places API 回傳的照片參考資訊
+ */
+export interface SpotPhoto {
+  photoReference: string;  // Google Places Photo Reference，用於生成照片 URL
+  width: number;           // 原始照片寬度
+  height: number;          // 原始照片高度
+  attributions?: string[]; // 照片來源歸屬（版權聲明）
+}
+
 export interface Spot {
   id: string;
   name: string;
@@ -33,6 +44,7 @@ export interface Spot {
   isLoading?: boolean;
   isManual?: boolean;     // True if manually created (not AI)
   placeId?: string;       // Google Maps Place ID (optional)
+  photos?: SpotPhoto[];   // 景點照片陣列（來自 Google Places API）
 }
 
 export interface DayPlan {

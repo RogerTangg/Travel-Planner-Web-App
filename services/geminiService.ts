@@ -1,4 +1,4 @@
-import { Spot, AIAnalysisResponse, Coordinates } from "../types";
+import { Spot, AIAnalysisResponse, Coordinates, SpotPhoto } from "../types";
 
 // API calls go through Cloudflare Functions
 const API_BASE = '/api';
@@ -7,6 +7,7 @@ const API_BASE = '/api';
 export interface EnhancedAnalysisResponse extends AIAnalysisResponse {
   source?: 'places_api' | 'ai';
   placeId?: string;
+  photos?: SpotPhoto[];  // 新增：景點照片資訊
 }
 
 export const analyzeSpotWithAI = async (spotName: string): Promise<EnhancedAnalysisResponse> => {
@@ -29,9 +30,40 @@ export const analyzeSpotWithAI = async (spotName: string): Promise<EnhancedAnaly
       coordinates: [35.6895, 139.6917],
       address: "日本東京",
       suggestedTime: "60 分鐘",
-      source: 'ai'
+      source: 'ai',
+      photos: []
     };
   }
+};
+
+// ====== 景點照片服務 (Spot Photo Service) ======
+
+/**
+ * 取得景點照片 URL
+ * 透過後端 API 代理取得 Google Places 照片，避免前端暴露 API Key
+ * 
+ * @param photoReference - Google Places Photo Reference
+ * @param maxWidth - 照片最大寬度（預設 400）
+ * @returns 照片 URL
+ */
+export const getSpotPhotoUrl = (photoReference: string, maxWidth: number = 400): string => {
+  if (!photoReference) return '';
+  return `${API_BASE}/place-photos?ref=${encodeURIComponent(photoReference)}&w=${maxWidth}`;
+};
+
+/**
+ * 批次取得多張照片 URL
+ * 
+ * @param photos - 照片陣列
+ * @param maxWidth - 照片最大寬度
+ * @returns URL 陣列
+ */
+export const getSpotPhotoUrls = (
+  photos: Array<{ photoReference: string }> | undefined, 
+  maxWidth: number = 400
+): string[] => {
+  if (!photos || photos.length === 0) return [];
+  return photos.map(photo => getSpotPhotoUrl(photo.photoReference, maxWidth));
 };
 
 export interface GeocodeResult {

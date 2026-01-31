@@ -1,10 +1,11 @@
 import React, { useState, useMemo, memo, useCallback } from 'react';
 import { Spot, SpotCategory } from '../types';
-import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation, Copy } from 'lucide-react';
+import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation, Copy, Camera } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { TimePicker } from './TimePicker';
 import { geocodeAddress } from '../services/geminiService';
+import { SpotPhotoGallery, SpotPhotoStrip } from './SpotPhotoGallery';
 
 interface SpotCardProps {
   spot: Spot;
@@ -426,32 +427,48 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
 
         {/* Main Content */}
         <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex justify-between items-center gap-2">
-            <h4 className="font-bold text-gray-800 text-sm truncate">
-              {spot.name}
-              {spot.isManual && <span className="ml-1 text-[10px] text-amber-500">(手動)</span>}
-            </h4>
-            <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full border flex items-center gap-0.5 font-medium ${getCategoryColor(spot.category)}`}>
-              {getIcon(spot.category)}
-              <span className="truncate max-w-[50px]">{spot.category}</span>
-            </span>
-          </div>
+          {/* Header with Photo */}
+          <div className="flex gap-2">
+            {/* 景點照片縮圖 (Spot Photo Thumbnail) */}
+            {spot.photos && spot.photos.length > 0 && (
+              <SpotPhotoGallery
+                photos={spot.photos}
+                spotName={spot.name}
+                thumbnailSize="sm"
+                className="flex-shrink-0"
+              />
+            )}
+            
+            {/* 標題與資訊區塊 */}
+            <div className="flex-1 min-w-0">
+              {/* Header */}
+              <div className="flex justify-between items-center gap-2">
+                <h4 className="font-bold text-gray-800 text-sm truncate">
+                  {spot.name}
+                  {spot.isManual && <span className="ml-1 text-[10px] text-amber-500">(手動)</span>}
+                </h4>
+                <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full border flex items-center gap-0.5 font-medium ${getCategoryColor(spot.category)}`}>
+                  {getIcon(spot.category)}
+                  <span className="truncate max-w-[50px]">{spot.category}</span>
+                </span>
+              </div>
 
-          {/* Description - Single Line */}
-          <p className="text-[11px] text-gray-500 truncate leading-relaxed mt-1">
-            {spot.description}
-          </p>
-
-          {/* Address */}
-          {spot.address && (
-            <div className="flex items-center gap-1 mt-1">
-              <Navigation size={10} className="text-gray-400 flex-shrink-0" />
-              <p className="text-[10px] text-gray-400 truncate">
-                {spot.address}
+              {/* Description - Single Line */}
+              <p className="text-[11px] text-gray-500 truncate leading-relaxed mt-1">
+                {spot.description}
               </p>
+
+              {/* Address */}
+              {spot.address && (
+                <div className="flex items-center gap-1 mt-1">
+                  <Navigation size={10} className="text-gray-400 flex-shrink-0" />
+                  <p className="text-[10px] text-gray-400 truncate">
+                    {spot.address}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Tags */}
           {spot.tags && spot.tags.length > 0 && (

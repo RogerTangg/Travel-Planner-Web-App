@@ -11,6 +11,17 @@ interface PlaceDetails {
   coordinates: { lat: number; lng: number };
   placeId: string;
   types?: string[];
+  photos?: PlacePhoto[];  // 新增：照片資訊
+}
+
+/**
+ * Google Places Photo 資訊結構
+ */
+interface PlacePhoto {
+  photoReference: string;
+  width: number;
+  height: number;
+  attributions?: string[];
 }
 
 interface AnalysisResult {
@@ -22,6 +33,7 @@ interface AnalysisResult {
   suggestedTime: string;
   source: 'places_api' | 'ai';
   placeId?: string;
+  photos?: PlacePhoto[];  // 新增：照片資訊
 }
 
 const SYSTEM_INSTRUCTION = `
@@ -173,7 +185,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const aiResult = JSON.parse(text);
     
-    // Step 3: 組合最終結果（優先使用 Places API 的座標和地址）
+    // Step 3: 組合最終結果（優先使用 Places API 的座標、地址和照片）
     const finalResult: AnalysisResult = {
       name: placeDetails?.name || aiResult.name,
       description: aiResult.description,
@@ -184,7 +196,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       address: placeDetails?.address || aiResult.address,
       suggestedTime: aiResult.suggestedTime,
       source: placeDetails ? 'places_api' : 'ai',
-      placeId: placeDetails?.placeId
+      placeId: placeDetails?.placeId,
+      photos: placeDetails?.photos || []  // 新增：包含照片資訊
     };
 
     return new Response(JSON.stringify(finalResult), {
@@ -209,6 +222,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
 /**
  * 使用 Google Places Text Search API 搜尋地點
+ * 並取得照片資訊
  */
 async function searchPlaceByName(name: string, apiKey: string): Promise<PlaceDetails | null> {
   try {
@@ -224,6 +238,24 @@ async function searchPlaceByName(name: string, apiKey: string): Promise<PlaceDet
     
     if (data.status === 'OK' && data.results && data.results.length > 0) {
       const place = data.results[0];
+      
+      // 解析照片資訊 (Parse photo information)
+      const photos: PlacePhoto[] = [];
+      if (place.photos && Array.isArray(place.photos)) {
+        // 取得前 5 張照片（避免過多請求）
+        const photoSlice = place.photos.slice(0, 5);
+        for (const photo of photoSlice) {
+          if (photo.photo_reference) {
+            photos.push({
+              photoReference: photo.photo_reference,
+              width: photo.width || 0,
+              height: photo.height || 0,
+              attributions: photo.html_attributions || []
+            });
+          }
+        }
+      }
+      
       return {
         name: place.name,
         address: place.formatted_address,
@@ -232,7 +264,8 @@ async function searchPlaceByName(name: string, apiKey: string): Promise<PlaceDet
           lng: place.geometry?.location?.lng || 0
         },
         placeId: place.place_id,
-        types: place.types
+        types: place.types,
+        photos: photos
       };
     }
     

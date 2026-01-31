@@ -32,6 +32,7 @@ export const useSpotActions = () => {
 
   /**
    * 使用 AI 分析並填充景點資訊 (Analyze and Fill Spot with AI)
+   * 包含照片、座標、地址等完整資訊
    */
   const analyzeAndFillSpot = useCallback(async (id: string, name: string) => {
     const { updateSpot } = useTripStore.getState();
@@ -46,6 +47,8 @@ export const useSpotActions = () => {
         coordinates: { lat: analysis.coordinates[0], lng: analysis.coordinates[1] },
         address: analysis.address,
         suggestedTime: analysis.suggestedTime,
+        placeId: analysis.placeId,
+        photos: analysis.photos || [],  // 新增：照片資訊
         isLoading: false
       });
     } catch (error) {
@@ -122,6 +125,8 @@ export const useSpotActions = () => {
         coordinates: spotInfo.coordinates,
         address: spotInfo.address || analysis.address,
         suggestedTime: analysis.suggestedTime,
+        placeId: analysis.placeId || spotInfo.placeId,
+        photos: analysis.photos || [],  // 新增：照片資訊
         isLoading: false
       });
 
