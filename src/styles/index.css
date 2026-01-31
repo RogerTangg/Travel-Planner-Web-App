@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* 自訂主題配置 (Custom Theme Configuration) */
+@theme {
+  /* 自訂顏色 (Custom Colors) */
+  --color-sakura-50: #FFF5F7;
+  --color-sakura-100: #FFF0F5;
+  --color-sakura-200: #FFE0EB;
+  --color-sakura-300: #FFB7C5;
+  --color-sakura-400: #FF9FB4;
+  --color-sakura-500: #FF8FAB;
+  --color-sakura-600: #E67A96;
+  --color-sakura-700: #CC6681;
+
+  --color-warm-50: #FAFAFA;
+  --color-warm-100: #F5F5F0;
+  --color-warm-200: #EBEBEB;
+  --color-warm-700: #555555;
+  --color-warm-800: #333333;
+
+  /* 字體 (Fonts) */
+  --font-sans: 'Inter', 'Noto Sans TC', sans-serif;
+
+  /* 動畫 (Animations) */
+  --animate-slide-in: slide-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-scale-in: scale-in 0.2s ease-out;
+
+  @keyframes slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes slide-up {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scale-in {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+}
+
+/* 基礎樣式 (Base Styles) */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-warm-50 text-warm-800 font-sans;
+    @apply antialiased;
+  }
+}
+
+/* 元件樣式 (Component Styles) */
+@layer components {
+  /* 自訂滾動條 (Custom Scrollbar) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-200 rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-300;
+  }
+
+  /* 按鈕基礎樣式 (Button Base) */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium transition-all;
+    @apply active:scale-95;
+  }
+  .btn-primary {
+    @apply bg-sakura-500 text-white hover:bg-sakura-600 hover:shadow-md;
+  }
+  .btn-secondary {
+    @apply bg-white border border-gray-200 text-gray-600 hover:border-sakura-200 hover:text-sakura-600;
+  }
+  .btn-danger {
+    @apply bg-red-50 text-red-600 border border-red-200 hover:bg-red-100;
+  }
+
+  /* 輸入框基礎樣式 (Input Base) */
+  .input {
+    @apply w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm;
+    @apply focus:bg-white focus:ring-2 focus:ring-sakura-200 focus:border-sakura-300 outline-none transition-all;
+  }
+
+  /* 卡片基礎樣式 (Card Base) */
+  .card {
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm;
+  }
+
+  /* 標籤基礎樣式 (Badge Base) */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  /* 響應式面板容器 (Responsive Panel Container) */
+  .panel-container {
+    @apply flex flex-col h-full;
+  }
+
+  /* 手機底部導航列 (Mobile Bottom Nav) */
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200;
+    @apply flex items-center justify-around py-2 px-4;
+    @apply md:hidden;
+    padding-bottom: env(safe-area-inset-bottom, 8px);
+  }
+
+  .mobile-nav-item {
+    @apply flex flex-col items-center gap-0.5 text-gray-500;
+    @apply transition-colors active:scale-95;
+  }
+
+  .mobile-nav-item.active {
+    @apply text-sakura-500;
+  }
+}
+
+/* 工具樣式 (Utility Styles) */
+@layer utilities {
+  /* 漸層背景 (Gradient Backgrounds) */
+  .bg-gradient-sakura {
+    @apply bg-gradient-to-r from-sakura-100 to-sakura-50;
+  }
+
+  /* 文字截斷 (Text Truncate) */
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* 玻璃效果 (Glass Effect) */
+  .glass {
+    @apply bg-white/80 backdrop-blur-sm;
+  }
+
+  /* 安全區域內距 (Safe Area Padding) */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* 隱藏滾動條但保持滾動功能 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 響應式動畫 */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-slide-in,
+    .animate-fade-in,
+    .animate-scale-in {
+      animation: none !important;
+    }
+  }
+}

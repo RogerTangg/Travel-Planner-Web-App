@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, memo, useCallback } from 'react';
 import { Spot, SpotCategory } from '../types';
 import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation, Copy } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
@@ -101,7 +101,7 @@ const addMinutesToTime = (timeStr: string, minutes: number): string => {
   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 };
 
-export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onUpdate, onDuplicate, isOverlay, compact }) => {
+export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick, onUpdate, onDuplicate, isOverlay, compact }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: spot.name,
@@ -523,4 +523,7 @@ export const SpotCard: React.FC<SpotCardProps> = ({ spot, onDelete, onClick, onU
       </div>
     </div>
   );
-};
+});
+
+// 為 memo 元件設定 displayName 以便於調試 (Set displayName for debugging)
+SpotCard.displayName = 'SpotCard';

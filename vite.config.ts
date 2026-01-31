@@ -10,11 +10,24 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    // 優化打包設定 (Build Optimization)
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+        }
+      }
+    }
   },
   plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
+      '@components': path.resolve(__dirname, './components'),
+      '@hooks': path.resolve(__dirname, './hooks'),
+      '@stores': path.resolve(__dirname, './stores'),
+      '@services': path.resolve(__dirname, './services'),
     }
   }
 });
