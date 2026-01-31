@@ -21,7 +21,9 @@ import {
   Tag,
   PenLine,
   X,
-  Undo2
+  Undo2,
+  Link,
+  ExternalLink
 } from 'lucide-react';
 import { 
   DndContext, 
@@ -48,7 +50,7 @@ import { createRoot } from 'react-dom/client';
 import { SpotCard } from './components/SpotCard';
 import { MapPreview } from './components/MapPreview';
 import { ConfirmDialog } from './components/ConfirmDialog';
-import { analyzeSpotWithAI, optimizeDaySchedule, extractSpotsFromText, scheduleUnscheduledSpots } from './services/geminiService';
+import { analyzeSpotWithAI, optimizeDaySchedule, extractSpotsFromText, scheduleUnscheduledSpots, extractSpotsFromGoogleMapsList } from './services/geminiService';
 
 // --- Constants ---
 const UNSCHEDULED_ID = 'unscheduled-container';
@@ -157,6 +159,11 @@ const App: React.FC = () => {
   const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Google Maps 清單輸入相關狀態
+  const [showGoogleMapsInput, setShowGoogleMapsInput] = useState(false);
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+  const [isExtractingFromUrl, setIsExtractingFromUrl] = useState(false);
 
   // Get all unique tags from current trip
   const allTags = useMemo(() => {
@@ -442,6 +449,61 @@ const App: React.FC = () => {
       }
     };
     reader.readAsText(file);
+  };
+
+  // Google Maps 清單連結提取
+  const handleExtractFromGoogleMaps = async () => {
+    if (!googleMapsUrl.trim() || !currentTrip) return;
+
+    setIsExtractingFromUrl(true);
+    
+    try {
+      const result = await extractSpotsFromGoogleMapsList(googleMapsUrl);
+      
+      if (result.error) {
+        alert(`提取失敗：${result.error}`);
+        setIsExtractingFromUrl(false);
+        return;
+      }
+      
+      if (result.spots.length === 0) {
+        alert("無法從連結中識別出景點。請確認連結是否為有效的 Google Maps 清單或地點連結。");
+        setIsExtractingFromUrl(false);
+        return;
+      }
+
+      // 建立佔位景點卡片
+      const newSpots = result.spots.map(spot => {
+        // 如果已有座標和地址（從 Places API），直接使用
+        if (spot.coordinates && spot.address) {
+          return {
+            ...createPlaceholderSpot(spot.name),
+            coordinates: spot.coordinates,
+            address: spot.address,
+            placeId: spot.placeId,
+          };
+        }
+        return createPlaceholderSpot(spot.name);
+      });
+      
+      updateCurrentTrip(trip => ({
+        ...trip,
+        unscheduledSpots: [...newSpots, ...trip.unscheduledSpots]
+      }));
+
+      // 使用 AI 分析補充詳細資訊
+      await Promise.all(newSpots.map(s => analyzeAndFillSpot(s.id, s.name)));
+
+      // 成功後關閉輸入框並清空
+      setShowGoogleMapsInput(false);
+      setGoogleMapsUrl("");
+      
+    } catch (error) {
+      console.error("Google Maps extraction error", error);
+      alert("處理 Google Maps 連結時發生錯誤");
+    } finally {
+      setIsExtractingFromUrl(false);
+    }
   };
 
   const handleOptimizeDay = async (dayId: string) => {
@@ -855,15 +917,63 @@ const App: React.FC = () => {
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isAnalyzing}
+                  disabled={isAnalyzing || isExtractingFromUrl}
                   title="上傳行程文字檔"
                   className="px-3 py-2.5 bg-white text-gray-500 hover:text-sakura-500 rounded-xl shadow-sm hover:shadow border-2 border-gray-200 hover:border-sakura-200 disabled:opacity-50 transition-all"
                 >
                   {isAnalyzing && !newSpotName ? <div className="animate-spin h-4 w-4 border-2 border-sakura-500 border-t-transparent rounded-full"/> : <Upload size={18} />}
                 </button>
               </div>
+
+              {/* Google Maps Link Button */}
+              <button 
+                type="button"
+                onClick={() => setShowGoogleMapsInput(!showGoogleMapsInput)}
+                disabled={isAnalyzing || isExtractingFromUrl}
+                title="從 Google Maps 清單連結匯入"
+                className={`px-3 py-2.5 rounded-xl shadow-sm hover:shadow border-2 transition-all ${showGoogleMapsInput ? 'bg-blue-100 text-blue-600 border-blue-300' : 'bg-white text-gray-500 hover:text-blue-500 border-gray-200 hover:border-blue-200'} disabled:opacity-50`}
+              >
+                <Link size={18} />
+              </button>
             </div>
           </form>
+
+          {/* Google Maps URL Input Panel */}
+          {showGoogleMapsInput && (
+            <div className="mb-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin size={14} className="text-blue-500" />
+                <span className="text-xs font-medium text-blue-700">Google Maps 清單匯入</span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={googleMapsUrl}
+                  onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                  placeholder="貼上 Google Maps 清單或地點連結..."
+                  className="flex-1 px-3 py-2 text-sm bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-300 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleExtractFromGoogleMaps}
+                  disabled={!googleMapsUrl.trim() || isExtractingFromUrl}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isExtractingFromUrl ? (
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"/>
+                  ) : (
+                    <>
+                      <ExternalLink size={14} />
+                      <span>匯入</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-[10px] text-blue-500 mt-2">
+                支援：Google Maps 清單分享連結、地點連結、短網址 (goo.gl/maps, maps.app.goo.gl)
+              </p>
+            </div>
+          )}
           
           {/* Quick Module Tags */}
           <div className="mb-3 p-2 bg-gray-50 rounded-xl">

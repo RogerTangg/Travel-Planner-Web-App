@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react';
 import { Spot, SpotCategory } from '../types';
+
+// Google Maps API Key from environment
+const GOOGLE_MAPS_API_KEY = (window as any).__GOOGLE_MAPS_API_KEY__ || import.meta.env?.VITE_GOOGLE_MAPS_API_KEY || '';
 
 // Category color mapping for markers
 const getCategoryColor = (category: SpotCategory): string => {
@@ -21,45 +22,22 @@ const getCategoryColor = (category: SpotCategory): string => {
   }
 };
 
-// Create custom colored marker icon
-const createColoredIcon = (color: string, isSelected: boolean) => {
-  const size = isSelected ? 36 : 28;
-  const shadowSize = isSelected ? 44 : 36;
+// Create SVG marker icon
+const createMarkerIcon = (color: string, isSelected: boolean): string => {
+  const size = isSelected ? 40 : 32;
+  const strokeWidth = isSelected ? 3 : 2;
   
-  return L.divIcon({
-    html: `
-      <div style="
-        width: ${size}px;
-        height: ${size}px;
-        background: ${isSelected ? `linear-gradient(135deg, ${color}, ${color}dd)` : color};
-        border: 3px solid white;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        box-shadow: ${isSelected ? '0 4px 12px rgba(0,0,0,0.4)' : '0 2px 6px rgba(0,0,0,0.3)'};
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        ${isSelected ? 'animation: pulse 1.5s ease-in-out infinite;' : ''}
-      ">
-        <div style="
-          transform: rotate(45deg);
-          color: white;
-          font-size: ${isSelected ? '14px' : '12px'};
-          font-weight: bold;
-        ">●</div>
-      </div>
-      <style>
-        @keyframes pulse {
-          0%, 100% { transform: rotate(-45deg) scale(1); }
-          50% { transform: rotate(-45deg) scale(1.1); }
-        }
-      </style>
-    `,
-    className: 'custom-marker',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    popupAnchor: [0, -size + 5]
-  });
+  return `data:image/svg+xml,${encodeURIComponent(`
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path 
+        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" 
+        fill="${color}" 
+        stroke="white" 
+        stroke-width="${strokeWidth}"
+      />
+      <circle cx="12" cy="9" r="3" fill="white"/>
+    </svg>
+  `)}`;
 };
 
 interface MapPreviewProps {
@@ -67,150 +45,243 @@ interface MapPreviewProps {
   selectedSpot: Spot | null;
 }
 
-// Optimized Map Controller
-const MapController: React.FC<{ selectedSpot: Spot | null; spots: Spot[] }> = ({ selectedSpot, spots }) => {
-  const map = useMap();
+// 全域載入狀態
+let googleMapsLoadPromise: Promise<void> | null = null;
+let isGoogleMapsLoaded = false;
 
-  useEffect(() => {
-    let rafId: number;
-    const invalidate = () => {
-      rafId = requestAnimationFrame(() => {
-        map.invalidateSize({ animate: false });
-      });
-    };
+const loadGoogleMapsScript = (): Promise<void> => {
+  if (isGoogleMapsLoaded && window.google?.maps) {
+    return Promise.resolve();
+  }
 
-    invalidate();
+  if (googleMapsLoadPromise) {
+    return googleMapsLoadPromise;
+  }
 
-    let resizeTimeout: NodeJS.Timeout;
-    const handleResize = () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(invalidate, 100);
-    };
-
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      cancelAnimationFrame(rafId);
-      clearTimeout(resizeTimeout);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [map]);
-
-  useEffect(() => {
-    if (selectedSpot) {
-      map.flyTo(
-        [selectedSpot.coordinates.lat, selectedSpot.coordinates.lng], 
-        16, 
-        { duration: 0.8, easeLinearity: 0.5 }
-      );
-    } else if (spots.length > 0) {
-      const bounds = L.latLngBounds(spots.map(s => [s.coordinates.lat, s.coordinates.lng]));
-      map.flyToBounds(bounds, { 
-        padding: [40, 40], 
-        maxZoom: 14,
-        duration: 0.8 
-      });
-    } else {
-      map.setView([35.6895, 139.6917], 11);
+  googleMapsLoadPromise = new Promise((resolve, reject) => {
+    // 檢查是否已經載入
+    if (window.google?.maps) {
+      isGoogleMapsLoaded = true;
+      resolve();
+      return;
     }
-  }, [selectedSpot, spots.length, map]);
 
-  return null;
+    // 建立 callback
+    const callbackName = '__googleMapsCallback__' + Date.now();
+    (window as any)[callbackName] = () => {
+      isGoogleMapsLoaded = true;
+      delete (window as any)[callbackName];
+      resolve();
+    };
+
+    // 載入腳本
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=${callbackName}&libraries=marker`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      delete (window as any)[callbackName];
+      googleMapsLoadPromise = null;
+      reject(new Error('Failed to load Google Maps'));
+    };
+
+    document.head.appendChild(script);
+  });
+
+  return googleMapsLoadPromise;
 };
 
 export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot }) => {
-  // Memoize markers with colors
-  const markers = useMemo(() => 
-    spots.map((spot) => ({
-      id: spot.id,
-      position: [spot.coordinates.lat, spot.coordinates.lng] as [number, number],
-      name: spot.name,
-      description: spot.description,
-      category: spot.category,
-      color: getCategoryColor(spot.category),
-      isSelected: selectedSpot?.id === spot.id,
-      startTime: spot.startTime,
-      endTime: spot.endTime
-    })),
-    [spots, selectedSpot?.id]
-  );
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const [infoWindow, setInfoWindow] = useState<google.maps.InfoWindow | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // 初始化 Google Maps
+  useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      setLoadError('請設定 Google Maps API Key');
+      return;
+    }
+
+    loadGoogleMapsScript()
+      .then(() => {
+        setIsLoaded(true);
+      })
+      .catch((error) => {
+        console.error('Google Maps load error:', error);
+        setLoadError('無法載入 Google Maps');
+      });
+  }, []);
+
+  // 建立地圖實例
+  useEffect(() => {
+    if (!isLoaded || !mapRef.current || map) return;
+
+    const newMap = new google.maps.Map(mapRef.current, {
+      center: { lat: 35.6895, lng: 139.6917 }, // 東京預設位置
+      zoom: 12,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+      zoomControl: true,
+      styles: [
+        // 淡雅風格
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }]
+        },
+        {
+          featureType: 'water',
+          elementType: 'geometry',
+          stylers: [{ color: '#c9d7e5' }]
+        },
+        {
+          featureType: 'landscape',
+          elementType: 'geometry',
+          stylers: [{ color: '#f5f5f5' }]
+        }
+      ]
+    });
+
+    const newInfoWindow = new google.maps.InfoWindow();
+    
+    setMap(newMap);
+    setInfoWindow(newInfoWindow);
+  }, [isLoaded, map]);
+
+  // 更新標記
+  useEffect(() => {
+    if (!map || !infoWindow) return;
+
+    // 清除舊標記
+    markers.forEach(marker => marker.setMap(null));
+
+    if (spots.length === 0) {
+      setMarkers([]);
+      return;
+    }
+
+    // 建立新標記
+    const newMarkers = spots.map((spot, index) => {
+      const isSelected = selectedSpot?.id === spot.id;
+      const color = getCategoryColor(spot.category);
+      
+      const marker = new google.maps.Marker({
+        position: { lat: spot.coordinates.lat, lng: spot.coordinates.lng },
+        map: map,
+        title: spot.name,
+        icon: {
+          url: createMarkerIcon(color, isSelected),
+          scaledSize: new google.maps.Size(isSelected ? 40 : 32, isSelected ? 40 : 32),
+          anchor: new google.maps.Point(isSelected ? 20 : 16, isSelected ? 40 : 32),
+        },
+        zIndex: isSelected ? 1000 : index,
+        animation: isSelected ? google.maps.Animation.BOUNCE : undefined,
+      });
+
+      // 點擊標記顯示資訊視窗
+      marker.addListener('click', () => {
+        const content = `
+          <div style="padding: 8px; min-width: 180px; max-width: 250px;">
+            <div style="display: flex; align-items: center; gap: 8px; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid ${color}40;">
+              <div style="width: 12px; height: 12px; border-radius: 50%; background-color: ${color};"></div>
+              <span style="font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background-color: ${color}20; color: ${color};">
+                ${spot.category}
+              </span>
+            </div>
+            <h3 style="font-weight: bold; font-size: 14px; color: #1f2937; margin-bottom: 4px;">
+              ${spot.name}
+            </h3>
+            <p style="font-size: 12px; color: #6b7280; line-height: 1.4; margin-bottom: 8px;">
+              ${spot.description.slice(0, 80)}${spot.description.length > 80 ? '...' : ''}
+            </p>
+            ${spot.address ? `
+              <p style="font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px;">
+                📍 ${spot.address}
+              </p>
+            ` : ''}
+            ${(spot.startTime || spot.endTime) ? `
+              <div style="display: flex; align-items: center; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f3f4f6;">
+                <span style="font-size: 10px; color: #9ca3af;">🕐</span>
+                <span style="font-size: 12px; font-weight: 500; color: #4b5563;">
+                  ${spot.startTime || '--:--'} ~ ${spot.endTime || '--:--'}
+                </span>
+              </div>
+            ` : ''}
+          </div>
+        `;
+        
+        infoWindow.setContent(content);
+        infoWindow.open(map, marker);
+      });
+
+      // 選中的標記停止彈跳動畫（1秒後）
+      if (isSelected) {
+        setTimeout(() => {
+          marker.setAnimation(null);
+        }, 1000);
+      }
+
+      return marker;
+    });
+
+    setMarkers(newMarkers);
+
+    // 自動調整視野
+    if (selectedSpot) {
+      map.panTo({ lat: selectedSpot.coordinates.lat, lng: selectedSpot.coordinates.lng });
+      map.setZoom(16);
+    } else if (spots.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      spots.forEach(spot => {
+        bounds.extend({ lat: spot.coordinates.lat, lng: spot.coordinates.lng });
+      });
+      map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+      
+      // 限制最大縮放
+      const listener = google.maps.event.addListener(map, 'idle', () => {
+        const currentZoom = map.getZoom();
+        if (currentZoom && currentZoom > 15) {
+          map.setZoom(15);
+        }
+        google.maps.event.removeListener(listener);
+      });
+    }
+  }, [map, spots, selectedSpot, infoWindow]);
+
+  // 載入錯誤顯示
+  if (loadError) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center bg-gray-100 text-gray-500">
+        <div className="text-4xl mb-4">🗺️</div>
+        <p className="text-sm font-medium">{loadError}</p>
+        <p className="text-xs mt-2 text-gray-400">請檢查 API Key 設定</p>
+      </div>
+    );
+  }
+
+  // 載入中顯示
+  if (!isLoaded) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center bg-gray-100">
+        <div className="animate-spin h-8 w-8 border-4 border-sakura-500 border-t-transparent rounded-full mb-4" />
+        <p className="text-sm text-gray-500">載入 Google Maps...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full w-full relative z-0">
-      <MapContainer 
-        center={[35.6895, 139.6917]} 
-        zoom={13} 
-        scrollWheelZoom={true}
-        className="h-full w-full"
-        style={{ height: '100%', width: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-        preferCanvas={true}
-      >
-        {/* Modern colorful map style - Stadia Alidade Smooth */}
-        <TileLayer
-          attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
-          url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
-          maxZoom={20}
-          updateWhenIdle={true}
-          updateWhenZooming={false}
-          keepBuffer={2}
-        />
-        
-        <MapController selectedSpot={selectedSpot} spots={spots} />
-        
-        {markers.map((marker, index) => (
-          <Marker 
-            key={marker.id} 
-            position={marker.position}
-            icon={createColoredIcon(marker.color, marker.isSelected)}
-            zIndexOffset={marker.isSelected ? 1000 : index}
-          >
-            <Popup>
-              <div className="p-2 min-w-[160px] max-w-[220px]">
-                {/* Header with category color */}
-                <div 
-                  className="flex items-center gap-2 pb-2 mb-2 border-b"
-                  style={{ borderColor: marker.color + '40' }}
-                >
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: marker.color }}
-                  />
-                  <span 
-                    className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: marker.color + '20', color: marker.color }}
-                  >
-                    {marker.category}
-                  </span>
-                </div>
-                
-                {/* Name */}
-                <h3 className="font-bold text-sm text-gray-800 leading-tight">
-                  {marker.name}
-                </h3>
-                
-                {/* Description */}
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
-                  {marker.description}
-                </p>
-                
-                {/* Time info */}
-                {(marker.startTime || marker.endTime) && (
-                  <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100">
-                    <span className="text-[10px] text-gray-400">🕐</span>
-                    <span className="text-xs font-medium text-gray-600">
-                      {marker.startTime || '--:--'} ~ {marker.endTime || '--:--'}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
+    <div className="h-full w-full relative">
+      {/* 地圖容器 */}
+      <div ref={mapRef} className="h-full w-full" />
       
-      {/* Map Legend - Enlarged */}
+      {/* 地圖圖例 */}
       {spots.length > 0 && (
-        <div className="absolute bottom-4 left-4 z-[400] bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-100 p-3 min-w-[180px]">
+        <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-100 p-3 min-w-[180px]">
           <div className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-gradient-to-br from-sakura-400 to-sakura-500"></div>
             地圖圖例
@@ -228,6 +299,11 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot }) =
           </div>
         </div>
       )}
+
+      {/* Google Maps 標誌（保持可見以符合使用條款） */}
+      <div className="absolute bottom-4 right-4 z-10 bg-white/80 backdrop-blur-sm rounded px-2 py-1">
+        <span className="text-[10px] text-gray-500">Powered by Google Maps</span>
+      </div>
     </div>
   );
 };

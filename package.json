@@ -1,7 +1,7 @@
 {
   "name": "travel-planner-web-app",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
+    "@googlemaps/js-api-loader": "^1.16.6",
+    "@react-google-maps/api": "^2.20.3",
     "react": "^19.2.4",
     "lucide-react": "^0.563.0",
-    "react-leaflet": "^5.0.0",
-    "leaflet": "^1.9.4",
     "react-dom": "^19.2.4",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -27,6 +27,7 @@
     "dotenv": "^16.4.7"
   },
   "devDependencies": {
+    "@types/google.maps": "^3.58.1",
     "@types/node": "^22.14.0",
     "@types/express": "^5.0.0",
     "@types/cors": "^2.8.17",

@@ -32,6 +32,7 @@ export interface Spot {
   tags?: string[];        // Custom user tags
   isLoading?: boolean;
   isManual?: boolean;     // True if manually created (not AI)
+  placeId?: string;       // Google Maps Place ID (optional)
 }
 
 export interface DayPlan {

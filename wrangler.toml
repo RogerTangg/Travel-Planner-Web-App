@@ -6,5 +6,9 @@ pages_build_output_dir = "dist"
 [vars]
 # Environment variables (non-sensitive)
 
-# Note: GEMINI_API_KEY should be set as a secret in Cloudflare Dashboard
+# Note: API Keys should be set as secrets in Cloudflare Dashboard
 # Dashboard > Pages > travel-planner > Settings > Environment variables
+#
+# Required secrets:
+# - GEMINI_API_KEY: Google Gemini AI API Key
+# - GOOGLE_MAPS_API_KEY: Google Maps Platform API Key (for Places API, Geocoding API)

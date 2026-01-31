@@ -125,3 +125,48 @@ export const scheduleUnscheduledSpots = async (
     return [];
   }
 };
+
+// ====== 新增：Google Maps 清單提取 ======
+
+export interface GoogleMapsListSpot {
+  name: string;
+  address?: string;
+  coordinates?: { lat: number; lng: number };
+  placeId?: string;
+}
+
+export interface GoogleMapsListResult {
+  spots: GoogleMapsListSpot[];
+  source: 'places_api' | 'ai_extraction';
+  error?: string;
+}
+
+/**
+ * 從 Google Maps 清單連結提取景點
+ * @param url Google Maps 清單分享連結
+ */
+export const extractSpotsFromGoogleMapsList = async (url: string): Promise<GoogleMapsListResult> => {
+  try {
+    const response = await fetch(`${API_BASE}/extract-google-list`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url.trim() })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+    
+    return await response.json() as GoogleMapsListResult;
+
+  } catch (error) {
+    console.error("Google Maps List Extraction Error:", error);
+    return {
+      spots: [],
+      source: 'ai_extraction',
+      error: error instanceof Error ? error.message : '提取失敗'
+    };
+  }
+};
+
