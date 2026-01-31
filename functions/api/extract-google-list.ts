@@ -172,6 +172,27 @@ ${pageContent.slice(0, 20000)}` : ''}
     const spotNames = JSON.parse(text) as string[];
     const uniqueSpots = [...new Set(spotNames)].filter(name => name && name.trim()).slice(0, 30);
 
+    // 如果有 API Key，使用 Places Text Search 獲取詳細資訊
+    if (uniqueSpots.length > 0 && context.env.GOOGLE_MAPS_API_KEY) {
+      console.log('Searching places with Text Search API for:', uniqueSpots);
+      const places = await searchMultiplePlaces(uniqueSpots, context.env.GOOGLE_MAPS_API_KEY);
+      
+      if (places.length > 0) {
+        return new Response(JSON.stringify({ 
+          spots: places.map(p => ({
+            name: p.name,
+            address: p.address,
+            coordinates: p.coordinates,
+            placeId: p.placeId
+          })),
+          source: 'places_text_search'
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // Fallback: 只返回名稱
     return new Response(JSON.stringify({ 
       spots: uniqueSpots.map(name => ({ name: name.trim() })),
       source: 'ai_extraction'
@@ -343,6 +364,7 @@ async function fetchPlaceDetails(placeIds: string[], apiKey: string): Promise<Pl
       
       if (response.ok) {
         const data = await response.json() as any;
+        console.log('Place Details response:', JSON.stringify(data));
         if (data.result) {
           results.push({
             name: data.result.name,
@@ -358,6 +380,58 @@ async function fetchPlaceDetails(placeIds: string[], apiKey: string): Promise<Pl
     } catch (e) {
       console.error(`Error fetching place ${placeId}:`, e);
     }
+  }
+  
+  return results;
+}
+
+/**
+ * 使用 Places Text Search API 搜尋地點名稱
+ */
+async function searchPlaceByName(name: string, apiKey: string): Promise<PlaceResult | null> {
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(name)}&key=${apiKey}`
+    );
+    
+    if (response.ok) {
+      const data = await response.json() as any;
+      console.log('Text Search response for', name, ':', data.status);
+      
+      if (data.results && data.results.length > 0) {
+        const place = data.results[0];
+        return {
+          name: place.name,
+          address: place.formatted_address,
+          placeId: place.place_id,
+          coordinates: {
+            lat: place.geometry?.location?.lat || 0,
+            lng: place.geometry?.location?.lng || 0
+          }
+        };
+      }
+    }
+  } catch (e) {
+    console.error(`Error searching place ${name}:`, e);
+  }
+  
+  return null;
+}
+
+/**
+ * 批次搜尋多個地點名稱
+ */
+async function searchMultiplePlaces(names: string[], apiKey: string): Promise<PlaceResult[]> {
+  const results: PlaceResult[] = [];
+  
+  // 限制並行請求數量
+  for (const name of names.slice(0, 15)) {
+    const place = await searchPlaceByName(name, apiKey);
+    if (place) {
+      results.push(place);
+    }
+    // 小延遲避免 rate limiting
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
   
   return results;
