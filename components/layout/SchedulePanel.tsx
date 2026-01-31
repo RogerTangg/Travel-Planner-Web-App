@@ -2,7 +2,8 @@
  * 行程面板元件 (Schedule Panel Component)
  * 
  * 中間區域的行程總覽，包含：
- * - 每日行程卡片
+ * - 每日行程卡片（含背景圖）
+ * - 時間軸照片視覺化
  * - 智慧排序功能
  * - 收回全部功能
  * 
@@ -10,7 +11,7 @@
  */
 
 import React, { memo, useMemo } from 'react';
-import { Calendar, Sparkles, Save, Undo2 } from 'lucide-react';
+import { Calendar, Sparkles, Save, Undo2, Image as ImageIcon, Grid } from 'lucide-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useTripStore, useUIStore } from '../../stores';
 import { useSpotActions } from '../../hooks';
@@ -19,6 +20,7 @@ import { DroppableContainer, LoadingOverlay, DayEmptyState } from '../common';
 
 /**
  * 單日行程卡片子元件 (Day Card)
+ * 支援背景圖顯示
  */
 interface DayCardProps {
   dayId: string;
@@ -38,6 +40,21 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
   const day = currentTrip.days.find(d => d.id === dayId);
   if (!day) return null;
 
+  // 取得該日第一張照片作為背景
+  const backgroundPhoto = useMemo(() => {
+    for (const spot of day.spots) {
+      if (spot.photos && spot.photos.length > 0) {
+        return spot.photos[0];
+      }
+    }
+    return null;
+  }, [day.spots]);
+
+  // 計算該日總照片數
+  const totalPhotos = useMemo(() => {
+    return day.spots.reduce((acc, spot) => acc + (spot.photos?.length || 0), 0);
+  }, [day.spots]);
+
   return (
     <div className="relative pl-8 border-l-2 border-dashed border-gray-200/80">
       {/* 日期標記 (Day Marker) */}
@@ -49,7 +66,15 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
       
       {/* 標題列 (Header) */}
       <div className="flex items-center justify-between mb-4 pl-2">
-        <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+          {totalPhotos > 0 && (
+            <span className="flex items-center gap-1 px-2 py-0.5 bg-sakura-50 text-sakura-600 text-xs rounded-full">
+              <ImageIcon size={12} />
+              {totalPhotos}
+            </span>
+          )}
+        </div>
         <button 
           onClick={() => handleOptimizeDay(dayId)}
           disabled={day.spots.length < 2}
@@ -60,38 +85,53 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
         </button>
       </div>
 
-      {/* 放置區域 (Drop Area) */}
+      {/* 放置區域 (Drop Area) - 含背景圖 */}
       <DroppableContainer 
         id={dayId}
-        className="min-h-[100px] bg-white rounded-2xl border border-gray-100 shadow-sm p-4 relative"
+        className="min-h-[100px] bg-white rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden"
         active={activeId !== null}
       >
-        {isOptimizing === dayId && <LoadingOverlay />}
-        <SortableContext 
-          id={dayId}
-          items={day.spots.map(s => s.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          {day.spots.length === 0 ? (
-            <DayEmptyState />
-          ) : (
-            day.spots.map((spot, index) => (
-              <div key={spot.id} className="relative">
-                <SpotCard 
-                  spot={spot} 
-                  onDelete={handleDeleteSpot}
-                  onClick={setSelectedSpot}
-                  onUpdate={handleUpdateSpot}
-                  onDuplicate={handleDuplicateSpot}
-                />
-                {/* 連接線 */}
-                {index < day.spots.length - 1 && (
-                  <div className="absolute left-[26px] bottom-[-12px] top-[100%] w-0.5 bg-gray-100 z-0 h-3" />
-                )}
-              </div>
-            ))
-          )}
-        </SortableContext>
+        {/* 背景圖層 */}
+        {backgroundPhoto && (
+          <div className="absolute inset-0 z-0">
+            <img
+              src={`/api/place-photos?ref=${encodeURIComponent(backgroundPhoto.photoReference)}&w=800`}
+              alt=""
+              className="w-full h-full object-cover opacity-[0.08]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/80 to-white/95" />
+          </div>
+        )}
+        
+        {/* 內容層 */}
+        <div className="relative z-10 p-4">
+          {isOptimizing === dayId && <LoadingOverlay />}
+          <SortableContext 
+            id={dayId}
+            items={day.spots.map(s => s.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {day.spots.length === 0 ? (
+              <DayEmptyState />
+            ) : (
+              day.spots.map((spot, index) => (
+                <div key={spot.id} className="relative">
+                  <SpotCard 
+                    spot={spot} 
+                    onDelete={handleDeleteSpot}
+                    onClick={setSelectedSpot}
+                    onUpdate={handleUpdateSpot}
+                    onDuplicate={handleDuplicateSpot}
+                  />
+                  {/* 連接線 */}
+                  {index < day.spots.length - 1 && (
+                    <div className="absolute left-[26px] bottom-[-12px] top-[100%] w-0.5 bg-gray-100 z-0 h-3" />
+                  )}
+                </div>
+              ))
+            )}
+          </SortableContext>
+        </div>
       </DroppableContainer>
     </div>
   );
@@ -106,13 +146,28 @@ export const SchedulePanel: React.FC = () => {
   const trips = useTripStore(state => state.trips);
   const currentTripId = useTripStore(state => state.currentTripId);
   const currentTrip = trips.find(t => t.id === currentTripId) || null;
-  const { showConfirm, hideConfirm, setSelectedSpot } = useUIStore();
+  const { showConfirm, hideConfirm, setSelectedSpot, openPhotoWall } = useUIStore();
   const collectAllSpots = useTripStore(state => state.collectAllSpots);
 
   // 計算總行程點數
   const totalScheduledSpots = useMemo(() => {
     if (!currentTrip) return 0;
     return currentTrip.days.reduce((acc, d) => acc + d.spots.length, 0);
+  }, [currentTrip]);
+
+  // 計算總照片數
+  const totalPhotos = useMemo(() => {
+    if (!currentTrip) return 0;
+    let count = 0;
+    currentTrip.days.forEach(day => {
+      day.spots.forEach(spot => {
+        count += spot.photos?.length || 0;
+      });
+    });
+    currentTrip.unscheduledSpots.forEach(spot => {
+      count += spot.photos?.length || 0;
+    });
+    return count;
   }, [currentTrip]);
 
   if (!currentTrip) return null;
@@ -147,6 +202,19 @@ export const SchedulePanel: React.FC = () => {
           <div className="text-[10px] md:text-xs text-gray-400">
             {totalScheduledSpots} 個行程點
           </div>
+          
+          {/* 照片牆按鈕 */}
+          {totalPhotos > 0 && (
+            <button
+              onClick={openPhotoWall}
+              className="flex items-center gap-1 px-2 py-1 bg-sakura-50 border border-sakura-200 text-sakura-600 rounded-lg text-[10px] md:text-xs font-medium hover:bg-sakura-100 active:scale-95 transition-all"
+              title="查看照片牆"
+            >
+              <Grid size={12} />
+              <span className="hidden sm:inline">照片牆</span>
+              <span className="text-sakura-400">{totalPhotos}</span>
+            </button>
+          )}
           
           {totalScheduledSpots > 0 && (
             <button

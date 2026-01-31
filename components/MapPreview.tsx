@@ -449,35 +449,59 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
         clickable: true,
       });
 
-      // 點擊標記顯示資訊視窗
+      // 點擊標記顯示資訊視窗（含照片預覽）
       marker.addListener('click', () => {
+        // 檢查是否有照片
+        const hasPhotos = spot.photos && spot.photos.length > 0;
+        const photoUrl = hasPhotos 
+          ? `/api/place-photos?ref=${encodeURIComponent(spot.photos![0].photoReference)}&w=300`
+          : '';
+        
         const content = `
-          <div style="padding: 8px; min-width: 180px; max-width: 250px;">
-            <div style="display: flex; align-items: center; gap: 8px; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid ${color}40;">
-              <div style="width: 12px; height: 12px; border-radius: 50%; background-color: ${color};"></div>
-              <span style="font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background-color: ${color}20; color: ${color};">
-                ${spot.category}
-              </span>
-            </div>
-            <h3 style="font-weight: bold; font-size: 14px; color: #1f2937; margin-bottom: 4px;">
-              ${spot.name}
-            </h3>
-            <p style="font-size: 12px; color: #6b7280; line-height: 1.4; margin-bottom: 8px;">
-              ${spot.description.slice(0, 80)}${spot.description.length > 80 ? '...' : ''}
-            </p>
-            ${spot.address ? `
-              <p style="font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px;">
-                📍 ${spot.address}
-              </p>
-            ` : ''}
-            ${(spot.startTime || spot.endTime) ? `
-              <div style="display: flex; align-items: center; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f3f4f6;">
-                <span style="font-size: 10px; color: #9ca3af;">🕐</span>
-                <span style="font-size: 12px; font-weight: 500; color: #4b5563;">
-                  ${spot.startTime || '--:--'} ~ ${spot.endTime || '--:--'}
-                </span>
+          <div style="min-width: 220px; max-width: 300px; overflow: hidden;">
+            ${hasPhotos ? `
+              <div style="position: relative; width: 100%; height: 120px; overflow: hidden; margin: -8px -8px 8px -8px; border-radius: 8px 8px 0 0;">
+                <img 
+                  src="${photoUrl}" 
+                  alt="${spot.name}"
+                  style="width: 100%; height: 100%; object-fit: cover;"
+                  onerror="this.parentElement.style.display='none'"
+                />
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: linear-gradient(transparent, rgba(0,0,0,0.6));"></div>
+                ${spot.photos!.length > 1 ? `
+                  <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px;">
+                    📷 ${spot.photos!.length}
+                  </div>
+                ` : ''}
               </div>
             ` : ''}
+            <div style="padding: ${hasPhotos ? '0 8px 8px 8px' : '8px'};">
+              <div style="display: flex; align-items: center; gap: 8px; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid ${color}40;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: ${color};"></div>
+                <span style="font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; background-color: ${color}20; color: ${color};">
+                  ${spot.category}
+                </span>
+              </div>
+              <h3 style="font-weight: bold; font-size: 14px; color: #1f2937; margin-bottom: 4px;">
+                ${spot.name}
+              </h3>
+              <p style="font-size: 12px; color: #6b7280; line-height: 1.4; margin-bottom: 8px;">
+                ${spot.description.slice(0, 80)}${spot.description.length > 80 ? '...' : ''}
+              </p>
+              ${spot.address ? `
+                <p style="font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 4px;">
+                  📍 ${spot.address}
+                </p>
+              ` : ''}
+              ${(spot.startTime || spot.endTime) ? `
+                <div style="display: flex; align-items: center; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f3f4f6;">
+                  <span style="font-size: 10px; color: #9ca3af;">🕐</span>
+                  <span style="font-size: 12px; font-weight: 500; color: #4b5563;">
+                    ${spot.startTime || '--:--'} ~ ${spot.endTime || '--:--'}
+                  </span>
+                </div>
+              ` : ''}
+            </div>
           </div>
         `;
         

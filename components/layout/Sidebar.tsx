@@ -58,7 +58,7 @@ const TripSelector: React.FC = memo(() => {
   const createTrip = useTripStore(state => state.createTrip);
   const deleteTrip = useTripStore(state => state.deleteTrip);
   const { showTripList, setShowTripList, showConfirm, setSelectedSpot } = useUIStore();
-
+  
   // 在組件內計算當前行程
   const currentTrip = trips.find(t => t.id === currentTripId) || null;
   if (!currentTrip) return null;
@@ -74,7 +74,7 @@ const TripSelector: React.FC = memo(() => {
       alert('至少需要保留一個行程');
       return;
     }
-
+    
     showConfirm({
       title: '刪除行程',
       message: '確定要刪除這個行程嗎？此操作無法復原。',
@@ -98,33 +98,79 @@ const TripSelector: React.FC = memo(() => {
         className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
       >
         <span className="text-sm font-medium text-gray-700 truncate">{currentTrip.title}</span>
-        <ChevronRight
-          size={16}
-          className={`text-gray-400 transition-transform ${showTripList ? 'rotate-90' : ''}`}
+        <ChevronRight 
+          size={16} 
+          className={`text-gray-400 transition-transform ${showTripList ? 'rotate-90' : ''}`} 
         />
       </button>
-
+      
       {showTripList && (
         <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fade-in">
-          <div className="max-h-[200px] overflow-y-auto">
-            {trips.map(trip => (
-              <div
-                key={trip.id}
-                className={`flex items-center justify-between px-3 py-2 hover:bg-gray-50 cursor-pointer ${trip.id === currentTripId ? 'bg-sakura-50' : ''}`}
-                onClick={() => handleSelectTrip(trip.id)}
-              >
-                <span className="text-sm truncate flex-1">{trip.title}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteTrip(trip.id);
-                  }}
-                  className="p-1 text-gray-400 hover:text-red-500 ml-2"
+          <div className="max-h-[280px] overflow-y-auto">
+            {trips.map(trip => {
+              // 取得行程封面圖（第一張景點照片）
+              const coverPhoto = (() => {
+                for (const day of trip.days) {
+                  for (const spot of day.spots) {
+                    if (spot.photos && spot.photos.length > 0) {
+                      return spot.photos[0];
+                    }
+                  }
+                }
+                for (const spot of trip.unscheduledSpots) {
+                  if (spot.photos && spot.photos.length > 0) {
+                    return spot.photos[0];
+                  }
+                }
+                return null;
+              })();
+              
+              const totalSpots = trip.days.reduce((acc, d) => acc + d.spots.length, 0) + trip.unscheduledSpots.length;
+
+              return (
+                <div 
+                  key={trip.id}
+                  className={`flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 cursor-pointer ${trip.id === currentTripId ? 'bg-sakura-50' : ''}`}
+                  onClick={() => handleSelectTrip(trip.id)}
                 >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
+                  {/* 封面圖縮略圖 */}
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                    {coverPhoto ? (
+                      <img
+                        src={`/api/place-photos?ref=${encodeURIComponent(coverPhoto.photoReference)}&w=100`}
+                        alt={trip.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <FolderPlus size={20} />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* 行程資訊 */}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium truncate block">{trip.title}</span>
+                    <span className="text-xs text-gray-400">
+                      {trip.dayCount} 天 · {totalSpots} 個景點
+                    </span>
+                  </div>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTrip(trip.id);
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
           <button
             onClick={handleCreateTrip}
@@ -147,14 +193,14 @@ TripSelector.displayName = 'TripSelector';
 const SpotSearchInput: React.FC = memo(() => {
   const [newSpotName, setNewSpotName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
   const { isManualMode, isAnalyzing, toggleManualMode, setIsAnalyzing } = useUIStore();
   const { handleAddSpot, handleFileUpload } = useSpotActions();
 
   const onSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newSpotName.trim()) return;
-
+    
     await handleAddSpot(newSpotName.trim());
     setNewSpotName('');
   };
@@ -178,31 +224,33 @@ const SpotSearchInput: React.FC = memo(() => {
     <form onSubmit={onSubmit} className="relative mb-2">
       {/* 主輸入框 */}
       <div className="relative mb-1.5">
-        <input
-          type="text"
-          placeholder={isManualMode ? "手動輸入景點名稱..." : "輸入景點名稱 (AI 智慧分析)..."}
+        <input 
+          type="text" 
+          placeholder={isManualMode ? "手動輸入景點名稱..." : "輸入景點名稱 (AI 智慧分析)..."} 
           value={newSpotName}
           onChange={(e) => setNewSpotName(e.target.value)}
-          className={`w-full pl-10 pr-4 py-3 bg-gray-50 border-2 rounded-xl text-sm focus:bg-white focus:ring-2 outline-none transition-all ${isManualMode
-              ? 'border-amber-300 focus:ring-amber-200 focus:border-amber-400'
+          className={`w-full pl-10 pr-4 py-3 bg-gray-50 border-2 rounded-xl text-sm focus:bg-white focus:ring-2 outline-none transition-all ${
+            isManualMode 
+              ? 'border-amber-300 focus:ring-amber-200 focus:border-amber-400' 
               : 'border-gray-200 focus:ring-sakura-200 focus:border-sakura-300'
-            }`}
+          }`}
         />
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
       </div>
-
+      
       {/* 操作按鈕列 */}
       <div className="flex gap-1.5">
-        <button
+        <button 
           type="submit"
           disabled={!newSpotName.trim() || (isAnalyzing && !isManualMode)}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg shadow-sm hover:shadow-md border-2 disabled:opacity-50 font-medium transition-all ${isManualMode
-              ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg shadow-sm hover:shadow-md border-2 disabled:opacity-50 font-medium transition-all ${
+            isManualMode 
+              ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100' 
               : 'bg-sakura-50 text-sakura-600 border-sakura-200 hover:bg-sakura-100'
-            }`}
+          }`}
         >
           {isAnalyzing && newSpotName && !isManualMode ? (
-            <div className="animate-spin h-3.5 w-3.5 border-2 border-sakura-500 border-t-transparent rounded-full" />
+            <div className="animate-spin h-3.5 w-3.5 border-2 border-sakura-500 border-t-transparent rounded-full"/>
           ) : (
             <>
               <Plus size={14} />
@@ -212,28 +260,29 @@ const SpotSearchInput: React.FC = memo(() => {
         </button>
 
         {/* 手動模式切換 */}
-        <button
+        <button 
           type="button"
           onClick={toggleManualMode}
           title={isManualMode ? "切換為 AI 模式" : "切換為手動模式"}
-          className={`px-2.5 py-2 rounded-lg shadow-sm hover:shadow border-2 transition-all ${isManualMode
-              ? 'bg-amber-100 text-amber-600 border-amber-300'
+          className={`px-2.5 py-2 rounded-lg shadow-sm hover:shadow border-2 transition-all ${
+            isManualMode 
+              ? 'bg-amber-100 text-amber-600 border-amber-300' 
               : 'bg-white text-gray-400 hover:text-amber-500 border-gray-200 hover:border-amber-200'
-            }`}
+          }`}
         >
           <PenLine size={16} />
         </button>
 
         {/* 檔案上傳 */}
         <div className="relative">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={onFileChange}
-            className="hidden"
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={onFileChange} 
+            className="hidden" 
             accept=".txt,.csv,.md"
           />
-          <button
+          <button 
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isAnalyzing}
@@ -241,7 +290,7 @@ const SpotSearchInput: React.FC = memo(() => {
             className="px-2.5 py-2 bg-white text-gray-500 hover:text-sakura-500 rounded-lg shadow-sm hover:shadow border-2 border-gray-200 hover:border-sakura-200 disabled:opacity-50 transition-all"
           >
             {isAnalyzing && !newSpotName ? (
-              <div className="animate-spin h-3.5 w-3.5 border-2 border-sakura-500 border-t-transparent rounded-full" />
+              <div className="animate-spin h-3.5 w-3.5 border-2 border-sakura-500 border-t-transparent rounded-full"/>
             ) : (
               <Upload size={16} />
             )}
@@ -289,20 +338,8 @@ QuickModules.displayName = 'QuickModules';
  * 標籤篩選子元件 (Tag Filter)
  */
 const TagFilter: React.FC = memo(() => {
-  const trips = useTripStore(state => state.trips);
-  const currentTripId = useTripStore(state => state.currentTripId);
+  const allTags = useTripStore(state => state.getAllTags());
   const { selectedTagFilter, setSelectedTagFilter } = useUIStore();
-
-  // 使用 useMemo 計算標籤，避免每次渲染都創建新陣列導致無限循環
-  const allTags = useMemo(() => {
-    const currentTrip = trips.find(t => t.id === currentTripId);
-    if (!currentTrip) return [];
-    const tagSet = new Set<string>();
-    [...currentTrip.unscheduledSpots, ...currentTrip.days.flatMap(d => d.spots)].forEach(spot => {
-      (spot.tags || []).forEach(tag => tagSet.add(tag));
-    });
-    return Array.from(tagSet).sort();
-  }, [trips, currentTripId]);
 
   if (allTags.length === 0) return null;
 
@@ -326,10 +363,11 @@ const TagFilter: React.FC = memo(() => {
           <button
             key={tag}
             onClick={() => setSelectedTagFilter(selectedTagFilter === tag ? null : tag)}
-            className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${selectedTagFilter === tag
-                ? 'bg-sakura-500 text-white'
+            className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+              selectedTagFilter === tag 
+                ? 'bg-sakura-500 text-white' 
                 : 'bg-gray-100 text-gray-600 hover:bg-sakura-100'
-              }`}
+            }`}
           >
             {tag}
           </button>
@@ -350,11 +388,11 @@ const UnscheduledSpotsList: React.FC = memo(() => {
   const currentTrip = trips.find(t => t.id === currentTripId) || null;
   const clearUnscheduledSpots = useTripStore(state => state.clearUnscheduledSpots);
   const { selectedTagFilter, isScheduling, activeId, setSelectedSpot, showConfirm, hideConfirm } = useUIStore();
-  const {
-    handleDeleteSpot,
-    handleUpdateSpot,
+  const { 
+    handleDeleteSpot, 
+    handleUpdateSpot, 
     handleDuplicateSpot,
-    handleSmartSchedule
+    handleSmartSchedule 
   } = useSpotActions();
 
   if (!currentTrip) return null;
@@ -369,7 +407,7 @@ const UnscheduledSpotsList: React.FC = memo(() => {
 
   const handleClearAll = () => {
     if (currentTrip.unscheduledSpots.length === 0) return;
-
+    
     showConfirm({
       title: '清空待安排景點',
       message: `確定要刪除所有 ${currentTrip.unscheduledSpots.length} 個待安排景點嗎？此操作無法復原。`,
@@ -383,13 +421,13 @@ const UnscheduledSpotsList: React.FC = memo(() => {
   };
 
   return (
-    <DroppableContainer
+    <DroppableContainer 
       id={UNSCHEDULED_ID}
       className="flex-1 overflow-y-auto bg-gray-50/50 p-3 custom-scrollbar relative"
       active={activeId !== null}
     >
       {isScheduling && <LoadingOverlay text="AI 智慧排程中..." />}
-
+      
       {/* 標題列 */}
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
@@ -399,7 +437,7 @@ const UnscheduledSpotsList: React.FC = memo(() => {
             {currentTrip.unscheduledSpots.length}
           </span>
         </div>
-
+        
         {currentTrip.unscheduledSpots.length > 0 && (
           <div className="flex items-center gap-1">
             <button
@@ -409,7 +447,7 @@ const UnscheduledSpotsList: React.FC = memo(() => {
             >
               <Trash2 size={10} />
             </button>
-
+            
             <button
               onClick={handleSmartSchedule}
               disabled={isScheduling || currentTrip.unscheduledSpots.some(s => s.isLoading)}
@@ -421,23 +459,23 @@ const UnscheduledSpotsList: React.FC = memo(() => {
           </div>
         )}
       </div>
-
+      
       {/* 景點列表 */}
-      <SortableContext
+      <SortableContext 
         id={UNSCHEDULED_ID}
         items={filteredSpots.map(s => s.id)}
         strategy={verticalListSortingStrategy}
       >
         {filteredSpots.length === 0 ? (
-          <EmptyState
-            variant={currentTrip.unscheduledSpots.length === 0 ? 'unscheduled' : 'filtered'}
+          <EmptyState 
+            variant={currentTrip.unscheduledSpots.length === 0 ? 'unscheduled' : 'filtered'} 
           />
         ) : (
           filteredSpots.map(spot => (
-            <SpotCard
-              key={spot.id}
-              spot={spot}
-              onDelete={handleDeleteSpot}
+            <SpotCard 
+              key={spot.id} 
+              spot={spot} 
+              onDelete={handleDeleteSpot} 
               onClick={setSelectedSpot}
               onUpdate={handleUpdateSpot}
               onDuplicate={handleDuplicateSpot}
@@ -478,26 +516,26 @@ export const Sidebar: React.FC = () => {
         <TripSelector />
 
         {/* 行程名稱輸入 */}
-        <input
-          type="text"
-          value={currentTrip.title}
+        <input 
+          type="text" 
+          value={currentTrip.title} 
           onChange={(e) => updateTrip(currentTrip.id, { title: e.target.value })}
-          className="w-full text-sm md:text-base font-bold text-gray-800 bg-gray-50 px-3 py-2 rounded-lg border-transparent focus:bg-white focus:ring-2 focus:ring-sakura-200 transition-all outline-none"
+          className="w-full text-sm md:text-base font-bold text-gray-800 bg-gray-50 px-3 py-2 rounded-lg border-transparent focus:bg-white focus:ring-2 focus:ring-sakura-200 transition-all outline-none" 
         />
-
+        
         {/* 天數控制 */}
         <div className="flex items-center justify-between mt-3 bg-gray-50 p-2 rounded-lg">
           <span className="text-xs font-medium text-gray-500 ml-1">旅遊天數</span>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => updateDayCount(currentTrip.dayCount - 1)}
+            <button 
+              onClick={() => updateDayCount(currentTrip.dayCount - 1)} 
               className="w-7 h-7 md:w-6 md:h-6 rounded hover:bg-white text-gray-500 shadow-sm active:scale-95 transition-transform"
             >
               -
             </button>
             <span className="text-sm font-bold w-4 text-center">{currentTrip.dayCount}</span>
-            <button
-              onClick={() => updateDayCount(currentTrip.dayCount + 1)}
+            <button 
+              onClick={() => updateDayCount(currentTrip.dayCount + 1)} 
               className="w-7 h-7 md:w-6 md:h-6 rounded hover:bg-white text-gray-500 shadow-sm active:scale-95 transition-transform"
             >
               +
@@ -514,7 +552,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* 待安排景點清單 - 手機版需要留底部空間給導航 */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-16 md:pb-0">
+      <div className="flex-1 overflow-hidden pb-16 md:pb-0">
         <UnscheduledSpotsList />
       </div>
     </div>

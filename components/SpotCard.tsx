@@ -1,11 +1,12 @@
 import React, { useState, useMemo, memo, useCallback } from 'react';
 import { Spot, SpotCategory } from '../types';
-import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation, Copy, Camera } from 'lucide-react';
+import { MapPin, Utensils, Bed, Train, Map as MapIcon, GripVertical, Trash2, Edit3, X, Check, ShoppingBag, Building2, Landmark, TreePine, Coffee, Wine, Gamepad2, Tag, Plus, ChevronDown, Navigation, Copy, Camera, Eye } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { TimePicker } from './TimePicker';
 import { geocodeAddress } from '../services/geminiService';
 import { SpotPhotoGallery, SpotPhotoStrip } from './SpotPhotoGallery';
+import { useUIStore } from '../stores';
 
 interface SpotCardProps {
   spot: Spot;
@@ -489,6 +490,18 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
           <div className="mt-2 flex items-center justify-end">
             {/* Action Buttons */}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* 查看詳情按鈕 */}
+              <button
+                onClick={(e) => {
+                  stopPropagation(e);
+                  useUIStore.getState().openSpotDetailModal(spot);
+                }}
+                onPointerDown={stopPropagation}
+                className="p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 rounded-md transition-colors cursor-pointer"
+                title="查看詳情"
+              >
+                <Eye size={13} />
+              </button>
               {onDuplicate && (
                 <button
                   onClick={(e) => {

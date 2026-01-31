@@ -8,6 +8,8 @@
  * - 確認對話框
  * - 篩選器狀態
  * - 響應式視圖狀態
+ * - 景點詳情 Modal
+ * - 照片牆 Modal
  * 
  * @module stores/uiStore
  */
@@ -45,6 +47,16 @@ interface UIState {
   // 選取狀態 (Selection State)
   selectedSpot: Spot | null;
   setSelectedSpot: (spot: Spot | null) => void;
+  
+  // 景點詳情 Modal (Spot Detail Modal)
+  spotDetailModal: { isOpen: boolean; spot: Spot | null };
+  openSpotDetailModal: (spot: Spot) => void;
+  closeSpotDetailModal: () => void;
+  
+  // 照片牆 Modal (Photo Wall Modal)
+  isPhotoWallOpen: boolean;
+  openPhotoWall: () => void;
+  closePhotoWall: () => void;
   
   // 載入狀態 (Loading State)
   isAnalyzing: boolean;
@@ -93,6 +105,16 @@ export const useUIStore = create<UIState>((set, get) => ({
   // --- 選取狀態 (Selection State) ---
   selectedSpot: null,
   setSelectedSpot: (spot) => set({ selectedSpot: spot }),
+  
+  // --- 景點詳情 Modal (Spot Detail Modal) ---
+  spotDetailModal: { isOpen: false, spot: null },
+  openSpotDetailModal: (spot) => set({ spotDetailModal: { isOpen: true, spot } }),
+  closeSpotDetailModal: () => set({ spotDetailModal: { isOpen: false, spot: null } }),
+  
+  // --- 照片牆 Modal (Photo Wall Modal) ---
+  isPhotoWallOpen: false,
+  openPhotoWall: () => set({ isPhotoWallOpen: true }),
+  closePhotoWall: () => set({ isPhotoWallOpen: false }),
   
   // --- 載入狀態 (Loading State) ---
   isAnalyzing: false,
