@@ -41,7 +41,7 @@ export const MapPanel: React.FC = memo(() => {
   }, [selectedSpot]);
 
   return (
-    <div className="w-full xl:w-[38%] h-full bg-white border-l border-gray-200 relative shadow-[-4px_0_24px_rgba(0,0,0,0.02)] pb-16 md:pb-0">
+    <div className="w-full h-full bg-white border-l border-gray-200 relative shadow-[-4px_0_24px_rgba(0,0,0,0.02)]">
       {/* 提示標籤 (Hint Badge) */}
       <div className="absolute top-3 md:top-4 right-3 md:right-4 z-[400] bg-white/90 backdrop-blur px-2 md:px-3 py-1 md:py-1.5 rounded-lg shadow-md text-[10px] md:text-xs font-bold flex items-center gap-1.5 md:gap-2 border border-gray-100 max-w-[200px] md:max-w-none">
         <MapPin size={12} className="text-sakura-500 flex-shrink-0 md:w-[14px] md:h-[14px]" />
