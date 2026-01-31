@@ -50,7 +50,7 @@ import { createRoot } from 'react-dom/client';
 import { SpotCard } from './components/SpotCard';
 import { MapPreview } from './components/MapPreview';
 import { ConfirmDialog } from './components/ConfirmDialog';
-import { analyzeSpotWithAI, optimizeDaySchedule, extractSpotsFromText, scheduleUnscheduledSpots, extractSpotsFromGoogleMapsList } from './services/geminiService';
+import { analyzeSpotWithAI, optimizeDaySchedule, extractSpotsFromText, scheduleUnscheduledSpots } from './services/geminiService';
 
 // --- Constants ---
 const UNSCHEDULED_ID = 'unscheduled-container';
@@ -215,10 +215,7 @@ const App: React.FC = () => {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Google Maps 清單輸入相關狀態
-  const [showGoogleMapsInput, setShowGoogleMapsInput] = useState(false);
-  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
-  const [isExtractingFromUrl, setIsExtractingFromUrl] = useState(false);
+
   
   // Toast 通知狀態
   const [toast, setToast] = useState<ToastState>({ isVisible: false, message: '', type: 'info' });
@@ -490,86 +487,58 @@ const App: React.FC = () => {
       }
 
       try {
-        const spotNames = await extractSpotsFromText(text);
+        const result = await extractSpotsFromText(text);
         
-        if (spotNames.length === 0) {
-          alert("無法從檔案中識別出景點。請確認檔案包含文字描述。");
+        if (result.spots.length === 0) {
+          showToast("無法從檔案中識別出景點。請確認檔案包含文字描述。", 'warning');
           setIsAnalyzing(false);
           return;
         }
 
-        const newSpots = spotNames.map(name => createPlaceholderSpot(name));
+        // 顯示提取統計
+        const { extracted, verified } = result.stats;
+        if (verified > 0) {
+          showToast(`✅ 成功識別 ${extracted} 個景點，${verified} 個已驗證`, 'success');
+        } else {
+          showToast(`📍 識別到 ${extracted} 個景點`, 'info');
+        }
+
+        // 建立景點卡片，已驗證的直接使用 Places API 資料
+        const newSpots = result.spots.map(spot => {
+          if (spot.verified && spot.coordinates && spot.address) {
+            // 已驗證：直接使用 Places API 的資料，不需要再 AI 分析
+            return {
+              ...createPlaceholderSpot(spot.verifiedName || spot.name),
+              coordinates: [spot.coordinates.lat, spot.coordinates.lng] as [number, number],
+              address: spot.address,
+              placeId: spot.placeId,
+              isLoading: false,  // 已有完整資訊
+            };
+          }
+          // 未驗證：需要後續 AI 分析
+          return createPlaceholderSpot(spot.name);
+        });
+        
         updateCurrentTrip(trip => ({
           ...trip,
           unscheduledSpots: [...newSpots, ...trip.unscheduledSpots]
         }));
 
-        await Promise.all(newSpots.map(s => analyzeAndFillSpot(s.id, s.name)));
+        // 只對未驗證的景點進行 AI 分析
+        const unverifiedSpots = newSpots.filter((_, index) => !result.spots[index].verified);
+        if (unverifiedSpots.length > 0) {
+          await Promise.all(unverifiedSpots.map(s => analyzeAndFillSpot(s.id, s.name)));
+        }
 
       } catch (error) {
         console.error("File processing error", error);
-        alert("處理檔案時發生錯誤");
+        showToast("處理檔案時發生錯誤", 'error');
       } finally {
         setIsAnalyzing(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
     reader.readAsText(file);
-  };
-
-  // Google Maps 清單連結提取
-  const handleExtractFromGoogleMaps = async () => {
-    if (!googleMapsUrl.trim() || !currentTrip) return;
-
-    setIsExtractingFromUrl(true);
-    
-    try {
-      const result = await extractSpotsFromGoogleMapsList(googleMapsUrl);
-      
-      if (result.error) {
-        showToast(`提取失敗：${result.error}`, 'error');
-        setIsExtractingFromUrl(false);
-        return;
-      }
-      
-      if (result.spots.length === 0) {
-        showToast('無法從連結中識別出景點。請確認連結是否為有效的 Google Maps 清單或地點連結。', 'warning');
-        setIsExtractingFromUrl(false);
-        return;
-      }
-
-      // 建立佔位景點卡片
-      const newSpots = result.spots.map(spot => {
-        // 如果已有座標和地址（從 Places API），直接使用
-        if (spot.coordinates && spot.address) {
-          return {
-            ...createPlaceholderSpot(spot.name),
-            coordinates: spot.coordinates,
-            address: spot.address,
-            placeId: spot.placeId,
-          };
-        }
-        return createPlaceholderSpot(spot.name);
-      });
-      
-      updateCurrentTrip(trip => ({
-        ...trip,
-        unscheduledSpots: [...newSpots, ...trip.unscheduledSpots]
-      }));
-
-      // 使用 AI 分析補充詳細資訊
-      await Promise.all(newSpots.map(s => analyzeAndFillSpot(s.id, s.name)));
-
-      // 成功後關閉輸入框並清空
-      setShowGoogleMapsInput(false);
-      setGoogleMapsUrl("");
-      
-    } catch (error) {
-      console.error("Google Maps extraction error", error);
-      showToast('處理 Google Maps 連結時發生錯誤，請稍後再試', 'error');
-    } finally {
-      setIsExtractingFromUrl(false);
-    }
   };
 
   const handleOptimizeDay = async (dayId: string) => {
@@ -983,87 +952,15 @@ const App: React.FC = () => {
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isAnalyzing || isExtractingFromUrl}
+                  disabled={isAnalyzing}
                   title="上傳行程文字檔"
                   className="px-3 py-2.5 bg-white text-gray-500 hover:text-sakura-500 rounded-xl shadow-sm hover:shadow border-2 border-gray-200 hover:border-sakura-200 disabled:opacity-50 transition-all"
                 >
                   {isAnalyzing && !newSpotName ? <div className="animate-spin h-4 w-4 border-2 border-sakura-500 border-t-transparent rounded-full"/> : <Upload size={18} />}
                 </button>
               </div>
-
-              {/* Google Maps Link Button */}
-              <button 
-                type="button"
-                onClick={() => setShowGoogleMapsInput(!showGoogleMapsInput)}
-                disabled={isAnalyzing || isExtractingFromUrl}
-                title="從 Google Maps 清單連結匯入"
-                className={`px-3 py-2.5 rounded-xl shadow-sm hover:shadow border-2 transition-all ${showGoogleMapsInput ? 'bg-blue-100 text-blue-600 border-blue-300' : 'bg-white text-gray-500 hover:text-blue-500 border-gray-200 hover:border-blue-200'} disabled:opacity-50`}
-              >
-                <Link size={18} />
-              </button>
             </div>
           </form>
-
-          {/* Google Maps URL Input Panel */}
-          {showGoogleMapsInput && (
-            <div className="mb-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-100 rounded-lg">
-                    <MapPin size={16} className="text-blue-600" />
-                  </div>
-                  <span className="text-sm font-bold text-blue-800">Google Maps 清單匯入</span>
-                </div>
-                <button
-                  onClick={() => setShowGoogleMapsInput(false)}
-                  className="p-1 text-blue-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400">
-                    <Link size={16} />
-                  </div>
-                  <input
-                    type="url"
-                    value={googleMapsUrl}
-                    onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                    placeholder="貼上 Google Maps 清單或地點連結..."
-                    className="w-full pl-10 pr-4 py-3 text-sm bg-white border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all placeholder:text-blue-300"
-                  />
-                </div>
-                
-                <button
-                  type="button"
-                  onClick={handleExtractFromGoogleMaps}
-                  disabled={!googleMapsUrl.trim() || isExtractingFromUrl}
-                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl text-sm font-bold hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
-                >
-                  {isExtractingFromUrl ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"/>
-                      <span>正在提取景點...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink size={16} />
-                      <span>匯入景點</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              
-              <div className="mt-3 pt-3 border-t border-blue-200">
-                <p className="text-xs text-blue-600 flex items-center gap-1">
-                  <span className="font-medium">支援格式：</span>
-                  <span className="text-blue-500">清單分享連結、地點連結、短網址</span>
-                </p>
-              </div>
-            </div>
-          )}
           
           {/* Quick Module Tags */}
           <div className="mb-3 p-2 bg-gray-50 rounded-xl">

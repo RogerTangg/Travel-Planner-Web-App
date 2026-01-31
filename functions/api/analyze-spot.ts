@@ -2,6 +2,26 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 interface Env {
   GEMINI_API_KEY: string;
+  GOOGLE_MAPS_API_KEY: string;
+}
+
+interface PlaceDetails {
+  name: string;
+  address: string;
+  coordinates: { lat: number; lng: number };
+  placeId: string;
+  types?: string[];
+}
+
+interface AnalysisResult {
+  name: string;
+  description: string;
+  category: string;
+  coordinates: [number, number];
+  address: string;
+  suggestedTime: string;
+  source: 'places_api' | 'ai';
+  placeId?: string;
 }
 
 const SYSTEM_INSTRUCTION = `
@@ -82,6 +102,14 @@ const SYSTEM_INSTRUCTION = `
 | 商店街/市場 | 60-120 分鐘 |
 `;
 
+/**
+ * 景點分析 API - 結合 Google Places API 和 AI
+ * 
+ * 流程：
+ * 1. 先用 Google Places API 搜尋，獲取官方精確資料
+ * 2. 如果找到：使用 Places API 的座標/地址 + AI 生成描述
+ * 3. 如果沒找到：完全使用 AI 生成
+ */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const { spotName } = await context.request.json() as { spotName: string };
@@ -94,12 +122,156 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     const sanitizedName = spotName.trim().slice(0, 200);
+    
+    // Step 1: 嘗試使用 Google Places API 搜尋
+    let placeDetails: PlaceDetails | null = null;
+    
+    if (context.env.GOOGLE_MAPS_API_KEY) {
+      placeDetails = await searchPlaceByName(sanitizedName, context.env.GOOGLE_MAPS_API_KEY);
+      if (placeDetails) {
+        console.log(`✓ Places API found: ${sanitizedName} -> ${placeDetails.name}`);
+      } else {
+        console.log(`✗ Places API not found: ${sanitizedName}`);
+      }
+    }
+
+    // Step 2: 使用 AI 生成描述和分類（如果有 Places 資料則結合使用）
     const ai = new GoogleGenAI({ apiKey: context.env.GEMINI_API_KEY });
+    
+    // 根據是否有 Places 資料調整 prompt
+    const aiPrompt = placeDetails 
+      ? buildEnhancedPrompt(sanitizedName, placeDetails)
+      : buildFullPrompt(sanitizedName);
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `## 分析任務
-請分析以下旅遊地點並提供 **100% 精確** 的專業資訊：「${sanitizedName}」
+      contents: aiPrompt,
+      config: {
+        systemInstruction: SYSTEM_INSTRUCTION,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING, description: "地點的正式完整名稱（使用官方名稱）" },
+            description: { type: Type.STRING, description: "40-60字的精煉介紹，包含歷史背景和推薦體驗" },
+            category: { type: Type.STRING, enum: ["景點", "博物館", "神社寺廟", "公園", "購物", "餐廳", "咖啡廳", "酒吧", "飯店", "通勤", "娛樂", "自定義"] },
+            coordinates: { 
+              type: Type.ARRAY, 
+              items: { type: Type.NUMBER },
+              description: "精確的 [緯度, 經度] 座標，小數點後5-6位，指向建築物入口"
+            },
+            address: { type: Type.STRING, description: "完整街道地址，日本地點須含郵遞區號、都道府縣、市區町村、町名丁目番地號" },
+            suggestedTime: { type: Type.STRING, description: "建議停留時間，格式如 '90 分鐘'" }
+          },
+          required: ["name", "description", "category", "coordinates", "address", "suggestedTime"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from AI");
+
+    const aiResult = JSON.parse(text);
+    
+    // Step 3: 組合最終結果（優先使用 Places API 的座標和地址）
+    const finalResult: AnalysisResult = {
+      name: placeDetails?.name || aiResult.name,
+      description: aiResult.description,
+      category: aiResult.category,
+      coordinates: placeDetails 
+        ? [placeDetails.coordinates.lat, placeDetails.coordinates.lng]
+        : aiResult.coordinates,
+      address: placeDetails?.address || aiResult.address,
+      suggestedTime: aiResult.suggestedTime,
+      source: placeDetails ? 'places_api' : 'ai',
+      placeId: placeDetails?.placeId
+    };
+
+    return new Response(JSON.stringify(finalResult), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error("API Error:", error);
+    return new Response(JSON.stringify({
+      name: "未知地點",
+      description: "無法取得資訊，請稍後再試。",
+      category: "自定義",
+      coordinates: [35.6895, 139.6917],
+      address: "日本東京",
+      suggestedTime: "60 分鐘",
+      source: 'ai'
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+/**
+ * 使用 Google Places Text Search API 搜尋地點
+ */
+async function searchPlaceByName(name: string, apiKey: string): Promise<PlaceDetails | null> {
+  try {
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(name)}&key=${apiKey}`;
+    const response = await fetch(searchUrl);
+    
+    if (!response.ok) {
+      console.error('Places API error:', response.status);
+      return null;
+    }
+    
+    const data = await response.json() as any;
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const place = data.results[0];
+      return {
+        name: place.name,
+        address: place.formatted_address,
+        coordinates: {
+          lat: place.geometry?.location?.lat || 0,
+          lng: place.geometry?.location?.lng || 0
+        },
+        placeId: place.place_id,
+        types: place.types
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Places API search error:', error);
+    return null;
+  }
+}
+
+/**
+ * 當有 Places API 資料時，只需要 AI 生成描述和分類
+ */
+function buildEnhancedPrompt(spotName: string, place: PlaceDetails): string {
+  return `## 分析任務
+請為以下已確認的旅遊地點提供專業描述：
+
+**地點名稱**：${place.name}
+**用戶輸入**：${spotName}
+**地址**：${place.address}
+**座標**：[${place.coordinates.lat}, ${place.coordinates.lng}]
+
+## 任務
+1. 確認地點名稱（使用官方名稱：${place.name}）
+2. 撰寫 40-60 字的描述，包含歷史背景或特色 + 推薦體驗
+3. 根據地點類型分類
+4. 估算建議停留時間
+
+## ⚠️ 重要
+- 座標和地址已由 Google Maps 確認，請直接使用
+- 專注於撰寫有價值的描述內容`;
+}
+
+/**
+ * 完全由 AI 生成的 prompt（當 Places API 找不到時）
+ */
+function buildFullPrompt(spotName: string): string {
+  return `## 分析任務
+請分析以下旅遊地點並提供 **100% 精確** 的專業資訊：「${spotName}」
 
 ## 🔍 分析步驟
 
@@ -136,47 +308,5 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 - 地址必須是可用於 Google Maps 導航的完整格式
 - 座標必須能精確定位到該建築物
 - 如果是知名景點，資訊必須 100% 正確（淺草寺在台東區淺草2-3-1，不是其他地址）
-- 描述要有實質內容，避免「很棒」「推薦」等空泛詞語`,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            name: { type: Type.STRING, description: "地點的正式完整名稱（使用官方名稱）" },
-            description: { type: Type.STRING, description: "40-60字的精煉介紹，包含歷史背景和推薦體驗" },
-            category: { type: Type.STRING, enum: ["景點", "博物館", "神社寺廟", "公園", "購物", "餐廳", "咖啡廳", "酒吧", "飯店", "通勤", "娛樂", "自定義"] },
-            coordinates: { 
-              type: Type.ARRAY, 
-              items: { type: Type.NUMBER },
-              description: "精確的 [緯度, 經度] 座標，小數點後5-6位，指向建築物入口"
-            },
-            address: { type: Type.STRING, description: "完整街道地址，日本地點須含郵遞區號、都道府縣、市區町村、町名丁目番地號" },
-            suggestedTime: { type: Type.STRING, description: "建議停留時間，格式如 '90 分鐘'" }
-          },
-          required: ["name", "description", "category", "coordinates", "address", "suggestedTime"]
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) throw new Error("No response from AI");
-
-    return new Response(text, {
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error("API Error:", error);
-    return new Response(JSON.stringify({
-      name: "未知地點",
-      description: "無法取得 AI 資訊，請稍後再試。",
-      category: "自定義",
-      coordinates: [35.6895, 139.6917],
-      address: "日本東京",
-      suggestedTime: "60 分鐘"
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-};
+- 描述要有實質內容，避免「很棒」「推薦」等空泛詞語`;
+}

@@ -3,7 +3,13 @@ import { Spot, AIAnalysisResponse, Coordinates } from "../types";
 // API calls go through Cloudflare Functions
 const API_BASE = '/api';
 
-export const analyzeSpotWithAI = async (spotName: string): Promise<AIAnalysisResponse> => {
+// 擴展的分析結果，包含資料來源資訊
+export interface EnhancedAnalysisResponse extends AIAnalysisResponse {
+  source?: 'places_api' | 'ai';
+  placeId?: string;
+}
+
+export const analyzeSpotWithAI = async (spotName: string): Promise<EnhancedAnalysisResponse> => {
   try {
     const response = await fetch(`${API_BASE}/analyze-spot`, {
       method: 'POST',
@@ -12,17 +18,18 @@ export const analyzeSpotWithAI = async (spotName: string): Promise<AIAnalysisRes
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json() as AIAnalysisResponse;
+    return await response.json() as EnhancedAnalysisResponse;
 
   } catch (error) {
     console.error("AI Analysis Error:", error);
     return {
       name: spotName,
-      description: "無法取得 AI 資訊，請稍後再試。",
+      description: "無法取得資訊，請稍後再試。",
       category: "自定義",
       coordinates: [35.6895, 139.6917],
       address: "日本東京",
-      suggestedTime: "60 分鐘"
+      suggestedTime: "60 分鐘",
+      source: 'ai'
     };
   }
 };
@@ -76,20 +83,53 @@ export const optimizeDaySchedule = async (spots: Spot[]): Promise<string[]> => {
   }
 };
 
-export const extractSpotsFromText = async (text: string): Promise<string[]> => {
+// ====== 文字提取景點（結合 Google Places API 驗證）======
+
+export interface ExtractedSpot {
+  name: string;
+  verifiedName?: string;
+  address?: string;
+  coordinates?: { lat: number; lng: number };
+  placeId?: string;
+  verified: boolean;
+}
+
+export interface ExtractResponse {
+  spots: ExtractedSpot[];
+  stats: {
+    extracted: number;
+    verified: number;
+  };
+}
+
+/**
+ * 從文字中提取景點名稱，並透過 Google Places API 驗證獲取完整資訊
+ */
+export const extractSpotsFromText = async (text: string): Promise<ExtractResponse> => {
   try {
     const response = await fetch(`${API_BASE}/extract-spots`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text.trim().slice(0, 5000) })
+      body: JSON.stringify({ text: text.trim().slice(0, 10000) })
     });
 
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json() as string[];
+    
+    const result = await response.json();
+    
+    // 兼容舊格式（純字串陣列）
+    if (Array.isArray(result)) {
+      return {
+        spots: result.map((name: string) => ({ name, verified: false })),
+        stats: { extracted: result.length, verified: 0 }
+      };
+    }
+    
+    return result as ExtractResponse;
 
   } catch (error) {
     console.error("AI Extraction Error:", error);
-    return [];
+    return { spots: [], stats: { extracted: 0, verified: 0 } };
   }
 };
 
@@ -125,48 +165,3 @@ export const scheduleUnscheduledSpots = async (
     return [];
   }
 };
-
-// ====== 新增：Google Maps 清單提取 ======
-
-export interface GoogleMapsListSpot {
-  name: string;
-  address?: string;
-  coordinates?: { lat: number; lng: number };
-  placeId?: string;
-}
-
-export interface GoogleMapsListResult {
-  spots: GoogleMapsListSpot[];
-  source: 'places_api' | 'ai_extraction';
-  error?: string;
-}
-
-/**
- * 從 Google Maps 清單連結提取景點
- * @param url Google Maps 清單分享連結
- */
-export const extractSpotsFromGoogleMapsList = async (url: string): Promise<GoogleMapsListResult> => {
-  try {
-    const response = await fetch(`${API_BASE}/extract-google-list`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url.trim() })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP ${response.status}`);
-    }
-    
-    return await response.json() as GoogleMapsListResult;
-
-  } catch (error) {
-    console.error("Google Maps List Extraction Error:", error);
-    return {
-      spots: [],
-      source: 'ai_extraction',
-      error: error instanceof Error ? error.message : '提取失敗'
-    };
-  }
-};
-

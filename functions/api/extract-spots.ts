@@ -2,8 +2,34 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 interface Env {
   GEMINI_API_KEY: string;
+  GOOGLE_MAPS_API_KEY: string;
 }
 
+interface ExtractedSpot {
+  name: string;
+  verifiedName?: string;
+  address?: string;
+  coordinates?: { lat: number; lng: number };
+  placeId?: string;
+  verified: boolean;
+}
+
+interface ExtractResponse {
+  spots: ExtractedSpot[];
+  stats: {
+    extracted: number;
+    verified: number;
+  };
+}
+
+/**
+ * 從文字中提取景點，並透過 Google Places API 驗證
+ * 
+ * 流程：
+ * 1. AI 從文字中提取地點名稱
+ * 2. 使用 Google Places Text Search API 驗證並獲取完整資訊
+ * 3. 返回驗證後的景點資料（包含地址、座標）
+ */
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const { text } = await context.request.json() as { text: string };
@@ -15,7 +41,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       });
     }
 
-    const sanitizedText = text.trim().slice(0, 8000);
+    const sanitizedText = text.trim().slice(0, 10000);
+    
+    // Step 1: 使用 AI 提取地點名稱
     const ai = new GoogleGenAI({ apiKey: context.env.GEMINI_API_KEY });
 
     const response = await ai.models.generateContent({
@@ -65,15 +93,44 @@ ${sanitizedText}
 
     const output = response.text;
     if (!output) {
-      return new Response(JSON.stringify([]), {
+      return new Response(JSON.stringify({ spots: [], stats: { extracted: 0, verified: 0 } } as ExtractResponse), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    const spots = JSON.parse(output) as string[];
-    // Remove duplicates and limit
-    const uniqueSpots = [...new Set(spots)].slice(0, 50);
-    return new Response(JSON.stringify(uniqueSpots), {
+    const extractedNames = JSON.parse(output) as string[];
+    const uniqueNames = [...new Set(extractedNames)].slice(0, 30);
+    
+    console.log('AI extracted spots:', uniqueNames);
+
+    // Step 2: 使用 Google Places API 驗證每個地點
+    const hasGoogleApi = !!context.env.GOOGLE_MAPS_API_KEY;
+    
+    if (!hasGoogleApi) {
+      // 沒有 API Key，返回未驗證的結果
+      const unverifiedSpots: ExtractedSpot[] = uniqueNames.map(name => ({
+        name,
+        verified: false
+      }));
+      
+      return new Response(JSON.stringify({
+        spots: unverifiedSpots,
+        stats: { extracted: uniqueNames.length, verified: 0 }
+      } as ExtractResponse), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 有 API Key，進行驗證
+    const verifiedSpots = await verifyAndEnrichSpots(uniqueNames, context.env.GOOGLE_MAPS_API_KEY);
+    
+    return new Response(JSON.stringify({
+      spots: verifiedSpots,
+      stats: { 
+        extracted: uniqueNames.length, 
+        verified: verifiedSpots.filter(s => s.verified).length 
+      }
+    } as ExtractResponse), {
       headers: { 'Content-Type': 'application/json' }
     });
 
@@ -85,3 +142,58 @@ ${sanitizedText}
     });
   }
 };
+
+/**
+ * 使用 Google Places API 驗證並獲取地點的完整資訊
+ */
+async function verifyAndEnrichSpots(names: string[], apiKey: string): Promise<ExtractedSpot[]> {
+  const results: ExtractedSpot[] = [];
+  
+  for (const name of names) {
+    try {
+      // 使用 Places Text Search API
+      const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(name)}&key=${apiKey}`;
+      const response = await fetch(searchUrl);
+      
+      if (!response.ok) {
+        console.error(`Places API error for ${name}:`, response.status);
+        results.push({ name, verified: false });
+        continue;
+      }
+      
+      const data = await response.json() as any;
+      
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        const place = data.results[0];
+        
+        // 驗證成功：獲取 Places API 返回的標準名稱和詳細資訊
+        results.push({
+          name: name,  // 保留原始名稱
+          verifiedName: place.name,  // Places API 返回的標準名稱
+          address: place.formatted_address,
+          coordinates: {
+            lat: place.geometry?.location?.lat || 0,
+            lng: place.geometry?.location?.lng || 0
+          },
+          placeId: place.place_id,
+          verified: true
+        });
+        
+        console.log(`✓ Verified: ${name} -> ${place.name}`);
+      } else {
+        // 驗證失敗：找不到匹配的地點
+        console.log(`✗ Not found: ${name} (status: ${data.status})`);
+        results.push({ name, verified: false });
+      }
+      
+      // 避免 API rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+    } catch (error) {
+      console.error(`Error verifying ${name}:`, error);
+      results.push({ name, verified: false });
+    }
+  }
+  
+  return results;
+}

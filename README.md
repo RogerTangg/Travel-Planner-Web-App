@@ -1,20 +1,34 @@
 # Travel Planner Web App
 
-一個功能完整的旅遊行程規劃應用程式，結合 AI 智慧分析與直覺化的拖曳操作，幫助你輕鬆規劃完美旅程。
+一個功能完整的旅遊行程規劃應用程式，結合 AI 智慧分析與 Google Places API 驗證，幫助你輕鬆規劃完美旅程。
 - 立即試用：https://travel-planner-beo.pages.dev/
 
 ## 功能特色
 
-### AI 智慧功能
+### AI 智慧功能 + Google Places API 驗證
 
 | 功能 | 說明 |
 |------|------|
-| **智慧景點分析** | 輸入景點名稱，AI 自動填入地址、座標、類別、描述及建議停留時間 |
-| **批次文字提取** | 貼上旅遊文章或行程表，AI 自動識別並提取所有景點 |
-| **Google Maps 清單匯入** | 貼上 Google Maps 清單連結，自動提取所有景點 |
+| **智慧景點分析** | 輸入景點名稱，先透過 Google Places API 獲取官方精確資料（座標、地址），再由 AI 生成描述與建議停留時間 |
+| **批次文字提取** | 貼上旅遊文章或行程表，AI 識別景點後透過 Google Places API 驗證並獲取完整資訊 |
 | **智慧排程** | 一鍵將待安排景點分配至各天，自動安排合理的參觀時間 |
 | **單日路線優化** | AI 根據地理位置與時段邏輯重新排序當日行程 |
 | **地址定位** | 修改地址後可自動更新 GPS 座標 |
+
+### 資料來源優先順序
+
+```
+用戶輸入 → Google Places API 搜尋 → 找到：使用官方精確資料
+                                  → 沒找到：AI 智慧生成
+```
+
+| 資料項目 | Places API 驗證通過 | 僅 AI 生成 |
+|---------|-------------------|-----------|
+| 座標 | ✅ Google 官方精確座標 | AI 推測 |
+| 地址 | ✅ Google 官方完整地址 | AI 推測 |
+| 名稱 | ✅ 官方標準名稱 | AI 識別 |
+| 描述 | AI 生成 | AI 生成 |
+| 建議時間 | AI 建議 | AI 建議 |
 
 ### 行程管理
 
@@ -92,9 +106,9 @@ TravelPlannerApp/
 │
 ├── functions/                 # Cloudflare Functions (API)
 │   └── api/
-│       ├── analyze-spot.ts    # 景點分析 API
-│       ├── extract-spots.ts   # 文字提取景點 API
-│       ├── extract-google-list.ts # Google Maps 清單提取 API
+│       ├── analyze-spot.ts    # 景點分析 API（Google Places + AI）
+│       ├── extract-spots.ts   # 文字提取景點 API（Google Places 驗證）
+│       ├── maps-config.ts     # Google Maps API 設定
 │       ├── schedule-spots.ts  # 智慧排程 API
 │       ├── optimize-day.ts    # 單日優化 API
 │       └── geocode.ts         # 地址定位 API
