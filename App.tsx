@@ -192,8 +192,8 @@ const AppContent: React.FC = memo(() => {
   // 使用個別選擇器避免物件參考變更導致的無限循環
   const mobileView = useUIStore(state => state.mobileView);
   const setMobileView = useUIStore(state => state.setMobileView);
-  const spotDetailModalIsOpen = useUIStore(state => state.spotDetailModal.isOpen);
-  const spotDetailModalSpot = useUIStore(state => state.spotDetailModal.spot);
+  const spotDetailModalIsOpen = useUIStore(state => state.spotDetailModal?.isOpen ?? false);
+  const spotDetailModalSpot = useUIStore(state => state.spotDetailModal?.spot ?? null);
   const closeSpotDetailModal = useUIStore(state => state.closeSpotDetailModal);
   const isPhotoWallOpen = useUIStore(state => state.isPhotoWallOpen);
   const closePhotoWall = useUIStore(state => state.closePhotoWall);
