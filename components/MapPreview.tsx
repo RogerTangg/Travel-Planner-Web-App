@@ -168,10 +168,10 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
       zoom: 12,
       mapTypeControl: false,
       streetViewControl: false,
-      // 將全螢幕按鈕移到左下角
+      // 將全螢幕按鈕移到左上角
       fullscreenControl: true,
       fullscreenControlOptions: {
-        position: google.maps.ControlPosition.LEFT_BOTTOM,
+        position: google.maps.ControlPosition.LEFT_TOP,
       },
       // 將縮放控制項移到右下角
       zoomControl: true,
@@ -545,9 +545,9 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
       {/* 地圖容器 */}
       <div ref={mapRef} className="h-full w-full" />
       
-      {/* 地圖圖例 - 移到左上角避免遮擋地圖內容和 POI */}
+      {/* 地圖圖例 - 放在左下角 */}
       {spots.length > 0 && (
-        <div className="absolute top-4 left-4 z-[5] bg-white/90 backdrop-blur-sm rounded-lg shadow-md border border-gray-200/50 p-2 max-w-[160px]">
+        <div className="absolute bottom-4 left-4 z-[5] bg-white/90 backdrop-blur-sm rounded-lg shadow-md border border-gray-200/50 p-2 max-w-[140px]">
           <div className="text-[10px] font-bold text-gray-600 mb-1.5 flex items-center gap-1">
             <div className="w-2 h-2 rounded bg-gradient-to-br from-sakura-400 to-sakura-500"></div>
             圖例
@@ -568,10 +568,10 @@ export const MapPreview: React.FC<MapPreviewProps> = ({ spots, selectedSpot, onA
 
       {/* 點擊新增提示 - 放在底部中間 */}
       {onAddSpotFromMap && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[5] bg-pink-500 backdrop-blur-sm rounded-full shadow-lg px-4 py-2.5">
-          <div className="flex items-center gap-2 text-white">
-            <span className="text-base">📍</span>
-            <span className="text-xs font-medium whitespace-nowrap">點擊地圖上的地點或圖標可新增景點</span>
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[5] bg-pink-500/90 rounded-full shadow-md px-3 py-1.5">
+          <div className="flex items-center gap-1.5 text-white">
+            <span className="text-xs">📍</span>
+            <span className="text-[10px] font-medium whitespace-nowrap">點擊地圖上的地點可新增景點</span>
           </div>
         </div>
       )}
