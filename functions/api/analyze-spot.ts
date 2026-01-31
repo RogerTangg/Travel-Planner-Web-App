@@ -197,11 +197,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       suggestedTime: aiResult.suggestedTime,
       source: placeDetails ? 'places_api' : 'ai',
       placeId: placeDetails?.placeId,
-      photos: placeDetails?.photos || []  // 新增：包含照片資訊
+      photos: placeDetails?.photos || []  // 包含照片資訊
     };
 
+    console.log(`[analyze-spot] Final result: source=${finalResult.source}, photos=${finalResult.photos.length}`);
+
     return new Response(JSON.stringify(finalResult), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
     });
 
   } catch (error) {
@@ -227,51 +232,65 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 async function searchPlaceByName(name: string, apiKey: string): Promise<PlaceDetails | null> {
   try {
     const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(name)}&key=${apiKey}`;
+    console.log(`[Places API] Searching for: ${name}`);
+    
     const response = await fetch(searchUrl);
     
     if (!response.ok) {
-      console.error('Places API error:', response.status);
+      console.error(`[Places API] HTTP error: ${response.status}`);
       return null;
     }
     
     const data = await response.json() as any;
+    console.log(`[Places API] Response status: ${data.status}`);
     
-    if (data.status === 'OK' && data.results && data.results.length > 0) {
-      const place = data.results[0];
-      
-      // 解析照片資訊 (Parse photo information)
-      const photos: PlacePhoto[] = [];
-      if (place.photos && Array.isArray(place.photos)) {
-        // 取得前 5 張照片（避免過多請求）
-        const photoSlice = place.photos.slice(0, 5);
-        for (const photo of photoSlice) {
-          if (photo.photo_reference) {
-            photos.push({
-              photoReference: photo.photo_reference,
-              width: photo.width || 0,
-              height: photo.height || 0,
-              attributions: photo.html_attributions || []
-            });
-          }
-        }
-      }
-      
-      return {
-        name: place.name,
-        address: place.formatted_address,
-        coordinates: {
-          lat: place.geometry?.location?.lat || 0,
-          lng: place.geometry?.location?.lng || 0
-        },
-        placeId: place.place_id,
-        types: place.types,
-        photos: photos
-      };
+    // 處理各種 API 狀態
+    if (data.status !== 'OK') {
+      console.error(`[Places API] Error status: ${data.status}, message: ${data.error_message || 'No message'}`);
+      return null;
     }
     
-    return null;
+    if (!data.results || data.results.length === 0) {
+      console.log(`[Places API] No results found for: ${name}`);
+      return null;
+    }
+    
+    const place = data.results[0];
+    console.log(`[Places API] Found place: ${place.name}, photos count: ${place.photos?.length || 0}`);
+    
+    // 解析照片資訊 (Parse photo information)
+    const photos: PlacePhoto[] = [];
+    if (place.photos && Array.isArray(place.photos)) {
+      // 取得前 5 張照片（避免過多請求）
+      const photoSlice = place.photos.slice(0, 5);
+      for (const photo of photoSlice) {
+        if (photo.photo_reference) {
+          photos.push({
+            photoReference: photo.photo_reference,
+            width: photo.width || 0,
+            height: photo.height || 0,
+            attributions: photo.html_attributions || []
+          });
+        }
+      }
+    }
+    
+    console.log(`[Places API] Parsed ${photos.length} photos for: ${place.name}`);
+    
+    return {
+      name: place.name,
+      address: place.formatted_address,
+      coordinates: {
+        lat: place.geometry?.location?.lat || 0,
+        lng: place.geometry?.location?.lng || 0
+      },
+      placeId: place.place_id,
+      types: place.types,
+      photos: photos
+    };
+    
   } catch (error) {
-    console.error('Places API search error:', error);
+    console.error('[Places API] Search error:', error);
     return null;
   }
 }
