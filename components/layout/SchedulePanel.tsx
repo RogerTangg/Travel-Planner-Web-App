@@ -11,7 +11,7 @@
  */
 
 import React, { memo, useMemo } from 'react';
-import { Calendar, Sparkles, Save, Undo2, Image as ImageIcon } from 'lucide-react';
+import { Calendar, Sparkles, Save, Undo2, Redo2, Image as ImageIcon } from 'lucide-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useTripStore, useUIStore } from '../../stores';
 import { useSpotActions, useHistory } from '../../hooks';
@@ -195,7 +195,7 @@ export const SchedulePanel: React.FC = () => {
   const hideConfirm = useUIStore(state => state.hideConfirm);
   const setSelectedSpot = useUIStore(state => state.setSelectedSpot);
   const collectAllSpots = useTripStore(state => state.collectAllSpots);
-  const { saveBeforeAction } = useHistory();
+  const { saveBeforeAction, handleUndo, handleRedo, canUndo, canRedo, lastAction } = useHistory();
 
   // 計算總行程點數
   const totalScheduledSpots = useMemo(() => {
@@ -233,6 +233,30 @@ export const SchedulePanel: React.FC = () => {
         </h2>
         
         <div className="flex items-center gap-2 md:gap-3">
+          {/* Undo/Redo 按鈕 */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleUndo}
+              disabled={!canUndo}
+              title={canUndo ? `復原：${lastAction}` : '沒有可復原的操作'}
+              className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+            >
+              <Undo2 size={12} />
+              <span className="hidden sm:inline">復原</span>
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={!canRedo}
+              title="重做"
+              className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+            >
+              <Redo2 size={12} />
+              <span className="hidden sm:inline">重做</span>
+            </button>
+          </div>
+
+          <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+          
           <div className="text-[10px] md:text-xs text-gray-400">
             {totalScheduledSpots} 個行程點
           </div>

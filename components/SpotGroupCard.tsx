@@ -3,13 +3,14 @@
  * 
  * 顯示景點集合，支援：
  * - 展開/收合顯示
- * - 集合內景點拖曳
+ * - 接收拖曳的景點（Droppable）
  * - 集合編輯與刪除
  * 
  * @module components/SpotGroupCard
  */
 
 import React, { useState, memo } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import {
   ChevronDown,
   ChevronRight,
@@ -18,7 +19,8 @@ import {
   Ungroup,
   X,
   Check,
-  GripVertical
+  GripVertical,
+  Plus
 } from 'lucide-react';
 import { SpotGroup, Spot } from '../types';
 import { useTripStore, useUIStore } from '../stores';
@@ -110,10 +112,25 @@ export const SpotGroupCard: React.FC<SpotGroupCardProps> = memo(({
     deleteSpotGroup(group.id, false);
   };
 
+  // 設定 Droppable，讓集合可以接收拖曳的景點
+  const { setNodeRef, isOver } = useDroppable({
+    id: `group-${group.id}`,
+    data: {
+      type: 'group',
+      groupId: group.id
+    }
+  });
+
   return (
     <div 
-      className="mb-3 rounded-xl border-2 overflow-hidden transition-all"
-      style={{ borderColor: group.color || GROUP_COLORS[0] }}
+      ref={setNodeRef}
+      className={`mb-3 rounded-xl border-2 overflow-hidden transition-all ${
+        isOver ? 'ring-2 ring-offset-2 scale-[1.02]' : ''
+      }`}
+      style={{ 
+        borderColor: group.color || GROUP_COLORS[0],
+        ...(isOver ? { '--tw-ring-color': group.color || GROUP_COLORS[0] } as React.CSSProperties : {})
+      }}
     >
       {/* 集合標題列 */}
       <div 
@@ -221,23 +238,45 @@ export const SpotGroupCard: React.FC<SpotGroupCardProps> = memo(({
 
       {/* 集合內的景點列表 */}
       {!group.collapsed && (
-        <div className="p-2 bg-white/50 space-y-1">
+        <div className={`p-2 bg-white/50 space-y-1 min-h-[60px] transition-colors ${
+          isOver ? 'bg-opacity-80' : ''
+        }`}>
           {spots.length === 0 ? (
-            <div className="text-center text-xs text-gray-400 py-4">
-              集合內沒有景點
+            <div 
+              className={`flex flex-col items-center justify-center text-xs py-4 rounded-lg border-2 border-dashed transition-all ${
+                isOver 
+                  ? 'border-current bg-white/80 text-gray-600' 
+                  : 'border-gray-200 text-gray-400'
+              }`}
+              style={isOver ? { borderColor: group.color } : {}}
+            >
+              <Plus size={16} className="mb-1 opacity-50" />
+              <span>{isOver ? '放開以加入集合' : '拖曳景點至此處'}</span>
             </div>
           ) : (
-            spots.map(spot => (
-              <SpotCard
-                key={spot.id}
-                spot={spot}
-                onDelete={onDeleteSpot}
-                onClick={setSelectedSpot}
-                onUpdate={onUpdateSpot}
-                onDuplicate={onDuplicateSpot}
-                compact={true}
-              />
-            ))
+            <>
+              {spots.map(spot => (
+                <SpotCard
+                  key={spot.id}
+                  spot={spot}
+                  onDelete={onDeleteSpot}
+                  onClick={setSelectedSpot}
+                  onUpdate={onUpdateSpot}
+                  onDuplicate={onDuplicateSpot}
+                  compact={true}
+                />
+              ))}
+              {/* 當有景點時，也顯示一個小的放置提示 */}
+              {isOver && (
+                <div 
+                  className="flex items-center justify-center text-xs py-2 rounded-lg border-2 border-dashed transition-all border-current bg-white/80"
+                  style={{ borderColor: group.color, color: group.color }}
+                >
+                  <Plus size={12} className="mr-1" />
+                  <span>放開以加入</span>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

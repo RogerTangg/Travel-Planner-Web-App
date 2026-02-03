@@ -13,7 +13,7 @@
  * @module components/layout/Sidebar
  */
 
-import React, { useRef, useState, useMemo, memo } from 'react';
+import React, { useRef, useMemo, memo, useState } from 'react';
 import {
   Plus,
   Sparkles,
@@ -26,8 +26,6 @@ import {
   Tag,
   PenLine,
   X,
-  Undo2,
-  Redo2,
   Download,
   FolderInput,
   Layers
@@ -38,7 +36,6 @@ import { useSpotActions, useHistory, useExportImport } from '../../hooks';
 import { SpotCategory } from '../../types';
 import { SpotCard } from '../SpotCard';
 import { SpotGroupCard } from '../SpotGroupCard';
-import { CreateGroupModal } from '../CreateGroupModal';
 import { DroppableContainer, LoadingOverlay, EmptyState } from '../common';
 
 // 常數
@@ -318,9 +315,10 @@ SpotSearchInput.displayName = 'SpotSearchInput';
 
 /**
  * 快速模組子元件 (Quick Modules)
+ * 包含各類景點快捷按鈕及「集合」按鈕
  */
 const QuickModules: React.FC = memo(() => {
-  const { handleAddQuickModule } = useSpotActions();
+  const { handleAddQuickModule, handleAddEmptyGroup } = useSpotActions();
 
   return (
     <div className="mb-2 p-1.5 bg-gray-50 rounded-lg">
@@ -340,6 +338,16 @@ const QuickModules: React.FC = memo(() => {
             <span>{module.label}</span>
           </button>
         ))}
+        {/* 集合按鈕 */}
+        <button
+          type="button"
+          onClick={handleAddEmptyGroup}
+          className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white rounded border border-purple-200 text-[10px] font-medium text-purple-600 hover:border-purple-400 hover:bg-purple-50 transition-all shadow-sm"
+          title="新增空集合，可拖曳景點至其中"
+        >
+          <Layers size={10} />
+          <span>集合</span>
+        </button>
       </div>
     </div>
   );
@@ -349,75 +357,30 @@ QuickModules.displayName = 'QuickModules';
 
 /**
  * 工具列子元件 (Toolbar)
- * 包含 Undo/Redo、匯出/匯入、建立集合
+ * 包含匯出/匯入功能
  */
 const Toolbar: React.FC = memo(() => {
-  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-  const { handleUndo, handleRedo, canUndo, canRedo, lastAction } = useHistory();
   const { handleExportTrip, triggerImportDialog } = useExportImport();
 
   return (
-    <>
-      <div className="flex items-center justify-between gap-1 mb-2 p-1.5 bg-gray-50 rounded-lg">
-        {/* 左側：Undo/Redo */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={handleUndo}
-            disabled={!canUndo}
-            title={canUndo ? `復原：${lastAction}` : '沒有可復原的操作'}
-            className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-sakura-300 hover:text-sakura-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
-          >
-            <Undo2 size={12} />
-            <span className="hidden sm:inline">復原</span>
-          </button>
-          <button
-            onClick={handleRedo}
-            disabled={!canRedo}
-            title="重做"
-            className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-sakura-300 hover:text-sakura-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
-          >
-            <Redo2 size={12} />
-            <span className="hidden sm:inline">重做</span>
-          </button>
-        </div>
-
-        {/* 中間：匯出/匯入 */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={handleExportTrip}
-            title="匯出行程 JSON"
-            className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-green-300 hover:text-green-600 transition-all shadow-sm"
-          >
-            <Download size={12} />
-            <span className="hidden sm:inline">匯出</span>
-          </button>
-          <button
-            onClick={triggerImportDialog}
-            title="匯入行程 JSON"
-            className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
-          >
-            <FolderInput size={12} />
-            <span className="hidden sm:inline">匯入</span>
-          </button>
-        </div>
-
-        {/* 右側：建立集合 */}
-        <button
-          onClick={() => setShowCreateGroupModal(true)}
-          title="建立景點集合"
-          className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-purple-300 hover:text-purple-600 transition-all shadow-sm"
-        >
-          <Layers size={12} />
-          <span className="hidden sm:inline">集合</span>
-        </button>
-      </div>
-
-      {/* 建立集合 Modal */}
-      <CreateGroupModal
-        isOpen={showCreateGroupModal}
-        onClose={() => setShowCreateGroupModal(false)}
-      />
-    </>
+    <div className="flex items-center justify-center gap-1 mb-2 p-1.5 bg-gray-50 rounded-lg">
+      <button
+        onClick={handleExportTrip}
+        title="匯出行程 JSON"
+        className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-green-300 hover:text-green-600 transition-all shadow-sm"
+      >
+        <Download size={12} />
+        <span className="hidden sm:inline">匯出</span>
+      </button>
+      <button
+        onClick={triggerImportDialog}
+        title="匯入行程 JSON"
+        className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
+      >
+        <FolderInput size={12} />
+        <span className="hidden sm:inline">匯入</span>
+      </button>
+    </div>
   );
 });
 

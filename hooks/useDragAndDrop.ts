@@ -53,6 +53,9 @@ export const useDragAndDrop = () => {
     // 檢查是否為容器本身
     if (id === UNSCHEDULED_ID) return UNSCHEDULED_ID;
     if (currentTrip.days.some((d: DayPlan) => d.id === id)) return id;
+    
+    // 檢查是否為集合容器 (group-xxx 格式)
+    if (typeof id === 'string' && id.startsWith('group-')) return id;
 
     // 檢查是否在待安排區
     if (currentTrip.unscheduledSpots.some((s: Spot) => s.id === id)) return UNSCHEDULED_ID;
@@ -60,6 +63,17 @@ export const useDragAndDrop = () => {
     // 檢查是否在某天的行程中
     const foundDay = currentTrip.days.find((d: DayPlan) => d.spots.some((s: Spot) => s.id === id));
     return foundDay ? foundDay.id : null;
+  }, []);
+
+  /**
+   * 檢查是否為集合放置目標 (Check if target is a group)
+   */
+  const isGroupTarget = useCallback((id: string | null): string | null => {
+    if (!id || typeof id !== 'string') return null;
+    if (id.startsWith('group-')) {
+      return id.replace('group-', '');
+    }
+    return null;
   }, []);
 
   /**
@@ -141,10 +155,10 @@ export const useDragAndDrop = () => {
   }, [activeSpot, findContainer]);
 
   /**
-   * 拖曳結束事件處理 - 同容器排序 (Handle Drag End)
+   * 拖曳結束事件處理 - 同容器排序或加入集合 (Handle Drag End)
    */
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { getCurrentTrip, updateCurrentTrip } = useTripStore.getState();
+    const { getCurrentTrip, updateCurrentTrip, addSpotsToGroup, removeSpotsFromGroup } = useTripStore.getState();
     const { clearDragState } = useUIStore.getState();
 
     const currentTrip = getCurrentTrip();
@@ -154,8 +168,30 @@ export const useDragAndDrop = () => {
     }
 
     const { active, over } = event;
+    const spotId = active.id as string;
+    const overId = over?.id as string || '';
+    
+    // 檢查是否拖曳到集合上
+    const targetGroupId = isGroupTarget(overId);
+    if (targetGroupId) {
+      // 檢查景點是否已在其他集合中，先移除
+      const existingGroup = (currentTrip.spotGroups || []).find(g => g.spotIds.includes(spotId));
+      if (existingGroup && existingGroup.id !== targetGroupId) {
+        removeSpotsFromGroup(existingGroup.id, [spotId]);
+      }
+      
+      // 加入目標集合
+      if (!existingGroup || existingGroup.id !== targetGroupId) {
+        addSpotsToGroup(targetGroupId, [spotId]);
+      }
+      
+      clearDragState();
+      hasSnapshotSavedRef.current = false;
+      return;
+    }
+
     const activeContainer = findContainer(active.id as string);
-    const overContainer = findContainer(over?.id as string || '');
+    const overContainer = findContainer(overId);
 
     // 同容器內排序
     if (activeContainer && overContainer && activeContainer === overContainer) {
@@ -199,7 +235,7 @@ export const useDragAndDrop = () => {
 
     clearDragState();
     hasSnapshotSavedRef.current = false;  // 重置快照標記
-  }, [findContainer]);
+  }, [findContainer, isGroupTarget]);
 
   return {
     sensors,
