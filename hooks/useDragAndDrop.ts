@@ -108,6 +108,7 @@ export const useDragAndDrop = () => {
 
   /**
    * 拖曳經過事件處理 - 跨容器移動 (Handle Drag Over)
+   * 注意：不處理集合目標，集合的加入在 handleDragEnd 中處理
    */
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { getCurrentTrip, updateCurrentTrip } = useTripStore.getState();
@@ -117,12 +118,23 @@ export const useDragAndDrop = () => {
 
     const { active, over } = event;
     if (!over) return;
+    
+    const overId = over.id as string;
+    
+    // 如果目標是集合，不處理跨容器移動（在 dragEnd 中處理）
+    if (overId.startsWith('group-')) return;
 
     const activeContainer = findContainer(active.id as string);
-    const overContainer = findContainer(over.id as string);
+    const overContainer = findContainer(overId);
+    
+    // 如果來源是集合，也不處理
+    if (activeContainer && activeContainer.startsWith('group-')) return;
 
     // 同容器或無效容器則不處理
     if (!activeContainer || !overContainer || activeContainer === overContainer) return;
+    
+    // 如果目標容器是集合，不處理
+    if (overContainer.startsWith('group-')) return;
 
     updateCurrentTrip((trip: Trip) => {
       let newUnscheduled = [...trip.unscheduledSpots];
@@ -174,6 +186,29 @@ export const useDragAndDrop = () => {
     // 檢查是否拖曳到集合上
     const targetGroupId = isGroupTarget(overId);
     if (targetGroupId) {
+      // 確保景點在待安排區域（集合只在待安排區域顯示）
+      const spotInUnscheduled = currentTrip.unscheduledSpots.some((s: Spot) => s.id === spotId);
+      const spotInDays = currentTrip.days.some((d: DayPlan) => d.spots.some((s: Spot) => s.id === spotId));
+      
+      // 如果景點在日行程中，先移到待安排區域
+      if (spotInDays && !spotInUnscheduled) {
+        const spotToMove = currentTrip.days
+          .flatMap((d: DayPlan) => d.spots)
+          .find((s: Spot) => s.id === spotId);
+        
+        if (spotToMove) {
+          const { updateCurrentTrip } = useTripStore.getState();
+          updateCurrentTrip((trip: Trip) => ({
+            ...trip,
+            days: trip.days.map((day: DayPlan) => ({
+              ...day,
+              spots: day.spots.filter((s: Spot) => s.id !== spotId)
+            })),
+            unscheduledSpots: [...trip.unscheduledSpots, spotToMove]
+          }));
+        }
+      }
+      
       // 檢查景點是否已在其他集合中，先移除
       const existingGroup = (currentTrip.spotGroups || []).find(g => g.spotIds.includes(spotId));
       if (existingGroup && existingGroup.id !== targetGroupId) {
