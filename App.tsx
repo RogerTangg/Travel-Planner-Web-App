@@ -170,8 +170,8 @@ const MobileNavigation: React.FC<{
           aria-label={label}
           aria-current={activeView === view ? 'page' : undefined}
         >
-          <Icon size={24} strokeWidth={activeView === view ? 2.5 : 2} />
-          <span className="text-xs font-semibold">{label}</span>
+          <Icon size={20} strokeWidth={activeView === view ? 2.5 : 2} />
+          <span className="text-[10px] font-medium">{label}</span>
         </button>
       ))}
     </nav>
@@ -215,7 +215,7 @@ const AppContent: React.FC = memo(() => {
   }
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 text-warm-800 font-sans overflow-hidden pb-[80px] md:pb-0">
+    <div className="flex h-screen w-full bg-gray-50 text-warm-800 font-sans overflow-hidden pb-[64px] md:pb-0">
       <DndContext 
         sensors={sensors}
         collisionDetection={pointerWithin} 
