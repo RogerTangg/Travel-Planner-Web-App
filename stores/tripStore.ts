@@ -4,17 +4,20 @@
  * 使用 Zustand 管理行程相關狀態，包括：
  * - 行程 CRUD 操作
  * - 景點管理
+ * - 景點集合管理
  * - localStorage 持久化
+ * - 匯出/匯入功能
  * 
  * @module stores/tripStore
  */
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Trip, DayPlan, Spot, SpotCategory } from '../types';
+import { Trip, DayPlan, Spot, SpotCategory, SpotGroup, TripSnapshot, ExportableTripData } from '../types';
 
 // --- Constants ---
 const LOCAL_STORAGE_KEY = 'travel-planner-trips';
+const EXPORT_VERSION = '1.0.0';
 
 // --- Helper Functions ---
 
@@ -33,6 +36,7 @@ export const createNewTrip = (title: string = '新行程'): Trip => ({
     { id: 'day-3', title: 'Day 3', spots: [] }
   ],
   unscheduledSpots: [],
+  spotGroups: [],
   createdAt: Date.now(),
   updatedAt: Date.now()
 });
@@ -78,6 +82,7 @@ interface TripState {
   getCurrentTrip: () => Trip | null;
   getAllSpots: () => Spot[];
   getAllTags: () => string[];
+  getSnapshot: () => TripSnapshot | null;
   
   // 行程操作 (Trip Actions)
   setCurrentTripId: (id: string | null) => void;
@@ -85,6 +90,7 @@ interface TripState {
   deleteTrip: (tripId: string) => boolean;
   updateTrip: (tripId: string, updates: Partial<Trip>) => void;
   updateCurrentTrip: (updater: (trip: Trip) => Trip) => void;
+  restoreSnapshot: (snapshot: TripSnapshot) => void;
   
   // 天數操作 (Day Actions)
   updateDayCount: (count: number) => void;
@@ -100,6 +106,19 @@ interface TripState {
   reorderSpots: (containerId: string, oldIndex: number, newIndex: number) => void;
   clearUnscheduledSpots: () => void;
   collectAllSpots: () => void;
+  
+  // 景點集合操作 (Spot Group Actions)
+  createSpotGroup: (name: string, spotIds: string[], color?: string) => SpotGroup;
+  updateSpotGroup: (groupId: string, updates: Partial<SpotGroup>) => void;
+  deleteSpotGroup: (groupId: string, deleteSpots?: boolean) => void;
+  addSpotsToGroup: (groupId: string, spotIds: string[]) => void;
+  removeSpotsFromGroup: (groupId: string, spotIds: string[]) => void;
+  toggleGroupCollapsed: (groupId: string) => void;
+  getGroupSpots: (groupId: string) => Spot[];
+  
+  // 匯出/匯入操作 (Export/Import Actions)
+  exportTrip: () => ExportableTripData | null;
+  importTrip: (data: ExportableTripData) => boolean;
   
   // 批次操作 (Batch Actions)
   batchAddSpots: (spots: Spot[]) => void;
@@ -150,6 +169,20 @@ export const useTripStore = create<TripState>()(
         return Array.from(tagSet).sort();
       },
       
+      /**
+       * 取得當前行程快照 (Get Current Trip Snapshot)
+       * 用於 Undo 功能
+       */
+      getSnapshot: () => {
+        const trip = get().getCurrentTrip();
+        if (!trip) return null;
+        return {
+          days: JSON.parse(JSON.stringify(trip.days)),
+          unscheduledSpots: JSON.parse(JSON.stringify(trip.unscheduledSpots)),
+          spotGroups: JSON.parse(JSON.stringify(trip.spotGroups || []))
+        };
+      },
+      
       // --- 行程操作 (Trip Actions) ---
       setCurrentTripId: (id) => set({ currentTripId: id }),
       
@@ -196,6 +229,29 @@ export const useTripStore = create<TripState>()(
           trips: state.trips.map(t => 
             t.id === currentTripId 
               ? { ...updater(t), updatedAt: Date.now() }
+              : t
+          )
+        }));
+      },
+      
+      /**
+       * 從快照還原行程 (Restore from Snapshot)
+       * 用於 Undo/Redo 功能
+       */
+      restoreSnapshot: (snapshot) => {
+        const { currentTripId } = get();
+        if (!currentTripId) return;
+        
+        set(state => ({
+          trips: state.trips.map(t => 
+            t.id === currentTripId 
+              ? { 
+                  ...t, 
+                  days: snapshot.days,
+                  unscheduledSpots: snapshot.unscheduledSpots,
+                  spotGroups: snapshot.spotGroups,
+                  updatedAt: Date.now() 
+                }
               : t
           )
         }));
@@ -410,6 +466,230 @@ export const useTripStore = create<TripState>()(
             unscheduledSpots: [...allScheduledSpots, ...trip.unscheduledSpots]
           };
         });
+      },
+      
+      // --- 景點集合操作 (Spot Group Actions) ---
+      
+      /**
+       * 建立景點集合 (Create Spot Group)
+       */
+      createSpotGroup: (name, spotIds, color) => {
+        const newGroup: SpotGroup = {
+          id: crypto.randomUUID(),
+          name,
+          color: color || '#F472B6', // 預設櫻花粉色
+          spotIds,
+          collapsed: false
+        };
+        
+        get().updateCurrentTrip(trip => ({
+          ...trip,
+          spotGroups: [...(trip.spotGroups || []), newGroup]
+        }));
+        
+        return newGroup;
+      },
+      
+      /**
+       * 更新景點集合 (Update Spot Group)
+       */
+      updateSpotGroup: (groupId, updates) => {
+        get().updateCurrentTrip(trip => ({
+          ...trip,
+          spotGroups: (trip.spotGroups || []).map(g => 
+            g.id === groupId ? { ...g, ...updates } : g
+          )
+        }));
+      },
+      
+      /**
+       * 刪除景點集合 (Delete Spot Group)
+       * @param deleteSpots - 是否同時刪除集合內的景點
+       */
+      deleteSpotGroup: (groupId, deleteSpots = false) => {
+        get().updateCurrentTrip(trip => {
+          const group = (trip.spotGroups || []).find(g => g.id === groupId);
+          if (!group) return trip;
+          
+          let newTrip = {
+            ...trip,
+            spotGroups: (trip.spotGroups || []).filter(g => g.id !== groupId)
+          };
+          
+          // 若需要刪除集合內的景點
+          if (deleteSpots) {
+            const spotIdsToDelete = new Set(group.spotIds);
+            newTrip = {
+              ...newTrip,
+              unscheduledSpots: newTrip.unscheduledSpots.filter(s => !spotIdsToDelete.has(s.id)),
+              days: newTrip.days.map(d => ({
+                ...d,
+                spots: d.spots.filter(s => !spotIdsToDelete.has(s.id))
+              }))
+            };
+          }
+          
+          return newTrip;
+        });
+      },
+      
+      /**
+       * 新增景點到集合 (Add Spots to Group)
+       */
+      addSpotsToGroup: (groupId, spotIds) => {
+        get().updateCurrentTrip(trip => ({
+          ...trip,
+          spotGroups: (trip.spotGroups || []).map(g => 
+            g.id === groupId 
+              ? { ...g, spotIds: [...new Set([...g.spotIds, ...spotIds])] }
+              : g
+          )
+        }));
+      },
+      
+      /**
+       * 從集合移除景點 (Remove Spots from Group)
+       */
+      removeSpotsFromGroup: (groupId, spotIds) => {
+        const spotIdSet = new Set(spotIds);
+        get().updateCurrentTrip(trip => ({
+          ...trip,
+          spotGroups: (trip.spotGroups || []).map(g => 
+            g.id === groupId 
+              ? { ...g, spotIds: g.spotIds.filter(id => !spotIdSet.has(id)) }
+              : g
+          )
+        }));
+      },
+      
+      /**
+       * 切換集合展開/收合 (Toggle Group Collapsed)
+       */
+      toggleGroupCollapsed: (groupId) => {
+        get().updateCurrentTrip(trip => ({
+          ...trip,
+          spotGroups: (trip.spotGroups || []).map(g => 
+            g.id === groupId ? { ...g, collapsed: !g.collapsed } : g
+          )
+        }));
+      },
+      
+      /**
+       * 取得集合內的景點 (Get Group Spots)
+       */
+      getGroupSpots: (groupId) => {
+        const trip = get().getCurrentTrip();
+        if (!trip) return [];
+        
+        const group = (trip.spotGroups || []).find(g => g.id === groupId);
+        if (!group) return [];
+        
+        const allSpots = [...trip.unscheduledSpots, ...trip.days.flatMap(d => d.spots)];
+        const spotMap = new Map(allSpots.map(s => [s.id, s]));
+        
+        return group.spotIds
+          .map(id => spotMap.get(id))
+          .filter(Boolean) as Spot[];
+      },
+      
+      // --- 匯出/匯入操作 (Export/Import Actions) ---
+      
+      /**
+       * 匯出當前行程為 JSON (Export Trip)
+       */
+      exportTrip: () => {
+        const trip = get().getCurrentTrip();
+        if (!trip) return null;
+        
+        const exportData: ExportableTripData = {
+          version: EXPORT_VERSION,
+          exportedAt: new Date().toISOString(),
+          trip: {
+            title: trip.title,
+            dayCount: trip.dayCount,
+            days: trip.days,
+            unscheduledSpots: trip.unscheduledSpots,
+            spotGroups: trip.spotGroups || []
+          }
+        };
+        
+        return exportData;
+      },
+      
+      /**
+       * 匯入行程 JSON (Import Trip)
+       * @returns 是否匯入成功
+       */
+      importTrip: (data) => {
+        try {
+          // 驗證資料格式
+          if (!data.version || !data.trip) {
+            console.error('Invalid import data format');
+            return false;
+          }
+          
+          // 建立新行程
+          const newTrip: Trip = {
+            id: crypto.randomUUID(),
+            title: data.trip.title || '匯入的行程',
+            dayCount: data.trip.dayCount || data.trip.days.length,
+            days: data.trip.days.map((day, index) => ({
+              ...day,
+              id: `day-${index + 1}-${Date.now()}` // 重新產生 ID 避免衝突
+            })),
+            unscheduledSpots: data.trip.unscheduledSpots.map(spot => ({
+              ...spot,
+              id: crypto.randomUUID() // 重新產生 ID 避免衝突
+            })),
+            spotGroups: (data.trip.spotGroups || []).map(group => ({
+              ...group,
+              id: crypto.randomUUID() // 重新產生 ID 避免衝突
+            })),
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          };
+          
+          // 更新景點 ID 對應（因為景點 ID 已重新產生）
+          // 這裡需要建立舊 ID -> 新 ID 的映射
+          const oldToNewSpotIds = new Map<string, string>();
+          
+          // 處理 days 內的景點
+          newTrip.days = data.trip.days.map((day, dayIndex) => ({
+            ...day,
+            id: `day-${dayIndex + 1}-${Date.now()}`,
+            spots: day.spots.map(spot => {
+              const newId = crypto.randomUUID();
+              oldToNewSpotIds.set(spot.id, newId);
+              return { ...spot, id: newId };
+            })
+          }));
+          
+          // 處理未排程景點
+          newTrip.unscheduledSpots = data.trip.unscheduledSpots.map(spot => {
+            const newId = crypto.randomUUID();
+            oldToNewSpotIds.set(spot.id, newId);
+            return { ...spot, id: newId };
+          });
+          
+          // 更新集合內的景點 ID 對應
+          newTrip.spotGroups = (data.trip.spotGroups || []).map(group => ({
+            ...group,
+            id: crypto.randomUUID(),
+            spotIds: group.spotIds
+              .map(oldId => oldToNewSpotIds.get(oldId))
+              .filter(Boolean) as string[]
+          }));
+          
+          set(state => ({
+            trips: [newTrip, ...state.trips],
+            currentTripId: newTrip.id
+          }));
+          
+          return true;
+        } catch (error) {
+          console.error('Import trip error:', error);
+          return false;
+        }
       },
       
       // --- 批次操作 (Batch Actions) ---

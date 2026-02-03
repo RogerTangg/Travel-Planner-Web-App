@@ -6,4 +6,5 @@
 
 export { useTripStore, createNewTrip, createPlaceholderSpot, createManualSpot } from './tripStore';
 export { useUIStore } from './uiStore';
+export { useHistoryStore, createSnapshot } from './historyStore';
 export type { ToastState, ConfirmState } from './uiStore';

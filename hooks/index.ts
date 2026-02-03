@@ -6,3 +6,5 @@
 
 export { useSpotActions } from './useSpotActions';
 export { useDragAndDrop } from './useDragAndDrop';
+export { useHistory } from './useHistory';
+export { useExportImport } from './useExportImport';

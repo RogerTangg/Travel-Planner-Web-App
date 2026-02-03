@@ -5,6 +5,7 @@
  * - 每日行程卡片（含背景圖）
  * - 智慧排序功能
  * - 收回全部功能
+ * - 景點集合支援
  * 
  * @module components/layout/SchedulePanel
  */
@@ -13,8 +14,9 @@ import React, { memo, useMemo } from 'react';
 import { Calendar, Sparkles, Save, Undo2, Image as ImageIcon } from 'lucide-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useTripStore, useUIStore } from '../../stores';
-import { useSpotActions } from '../../hooks';
+import { useSpotActions, useHistory } from '../../hooks';
 import { SpotCard } from '../SpotCard';
+import { SpotGroupCard } from '../SpotGroupCard';
 import { DroppableContainer, LoadingOverlay, DayEmptyState } from '../common';
 
 /**
@@ -35,6 +37,7 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
   const activeId = useUIStore(state => state.activeId);
   const setSelectedSpot = useUIStore(state => state.setSelectedSpot);
   const { handleOptimizeDay, handleDeleteSpot, handleUpdateSpot, handleDuplicateSpot } = useSpotActions();
+  const { saveBeforeAction } = useHistory();
 
   if (!currentTrip) return null;
   
@@ -55,6 +58,30 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
   const totalPhotos = useMemo(() => {
     return day.spots.reduce((acc, spot) => acc + (spot.photos?.length || 0), 0);
   }, [day.spots]);
+
+  // 取得該日景點所屬的集合
+  const dayGroups = useMemo(() => {
+    const spotIds = new Set(day.spots.map(s => s.id));
+    return (currentTrip.spotGroups || []).filter(group => 
+      group.spotIds.some(id => spotIds.has(id))
+    );
+  }, [currentTrip.spotGroups, day.spots]);
+
+  // 取得已在集合中的景點 ID
+  const groupedSpotIds = useMemo(() => {
+    return new Set(dayGroups.flatMap(g => g.spotIds));
+  }, [dayGroups]);
+
+  // 未分組的景點
+  const ungroupedSpots = useMemo(() => {
+    return day.spots.filter(s => !groupedSpotIds.has(s.id));
+  }, [day.spots, groupedSpotIds]);
+
+  // 包裝 handleDeleteSpot 以加入歷史紀錄
+  const handleDeleteSpotWithHistory = (id: string) => {
+    saveBeforeAction('刪除景點');
+    handleDeleteSpot(id);
+  };
 
   return (
     <div className="relative pl-8 border-l-2 border-dashed border-gray-200/80">
@@ -107,25 +134,42 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
         {/* 內容層 */}
         <div className="relative z-10 p-4">
           {isOptimizing === dayId && <LoadingOverlay />}
+          
+          {/* 景點集合列表 */}
+          {dayGroups.map(group => {
+            const groupSpots = day.spots.filter(s => group.spotIds.includes(s.id));
+            return (
+              <SpotGroupCard
+                key={group.id}
+                group={group}
+                spots={groupSpots}
+                onDeleteSpot={handleDeleteSpotWithHistory}
+                onUpdateSpot={handleUpdateSpot}
+                onDuplicateSpot={handleDuplicateSpot}
+              />
+            );
+          })}
+          
+          {/* 未分組景點列表 */}
           <SortableContext 
             id={dayId}
-            items={day.spots.map(s => s.id)}
+            items={ungroupedSpots.map(s => s.id)}
             strategy={verticalListSortingStrategy}
           >
             {day.spots.length === 0 ? (
               <DayEmptyState />
             ) : (
-              day.spots.map((spot, index) => (
+              ungroupedSpots.map((spot, index) => (
                 <div key={spot.id} className="relative">
                   <SpotCard 
                     spot={spot} 
-                    onDelete={handleDeleteSpot}
+                    onDelete={handleDeleteSpotWithHistory}
                     onClick={setSelectedSpot}
                     onUpdate={handleUpdateSpot}
                     onDuplicate={handleDuplicateSpot}
                   />
                   {/* 連接線 */}
-                  {index < day.spots.length - 1 && (
+                  {index < ungroupedSpots.length - 1 && (
                     <div className="absolute left-[26px] bottom-[-12px] top-[100%] w-0.5 bg-gray-100 z-0 h-3" />
                   )}
                 </div>
@@ -151,6 +195,7 @@ export const SchedulePanel: React.FC = () => {
   const hideConfirm = useUIStore(state => state.hideConfirm);
   const setSelectedSpot = useUIStore(state => state.setSelectedSpot);
   const collectAllSpots = useTripStore(state => state.collectAllSpots);
+  const { saveBeforeAction } = useHistory();
 
   // 計算總行程點數
   const totalScheduledSpots = useMemo(() => {
@@ -169,6 +214,7 @@ export const SchedulePanel: React.FC = () => {
       message: `確定要將所有 ${totalScheduledSpots} 個已排程景點收回至待安排清單嗎？`,
       type: 'warning',
       onConfirm: () => {
+        saveBeforeAction('收回全部景點');
         collectAllSpots();
         setSelectedSpot(null);
         hideConfirm();

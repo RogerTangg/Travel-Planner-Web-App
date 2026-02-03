@@ -47,6 +47,18 @@ export interface Spot {
   photos?: SpotPhoto[];   // 景點照片陣列（來自 Google Places API）
 }
 
+/**
+ * 景點集合 (Spot Group)
+ * 將多個相關景點組合在一起，方便一起拖曳和管理
+ */
+export interface SpotGroup {
+  id: string;
+  name: string;           // 集合名稱（例如：「涉谷購物區」）
+  color?: string;         // 集合顯示顏色
+  spotIds: string[];      // 包含的景點 ID
+  collapsed?: boolean;    // 是否收合顯示
+}
+
 export interface DayPlan {
   id: string;
   title: string; // e.g., "Day 1"
@@ -64,8 +76,46 @@ export interface Trip {
   dayCount: number;
   days: DayPlan[];
   unscheduledSpots: Spot[];
+  spotGroups: SpotGroup[];  // 景點集合
   createdAt: number;
   updatedAt: number;
+}
+
+/**
+ * 歷史紀錄項目 (History Item)
+ * 用於 Undo/Redo 功能
+ */
+export interface HistoryItem {
+  id: string;
+  timestamp: number;
+  action: string;         // 操作描述
+  snapshot: TripSnapshot; // 行程快照
+}
+
+/**
+ * 行程快照 (Trip Snapshot)
+ * 儲存行程的可還原狀態
+ */
+export interface TripSnapshot {
+  days: DayPlan[];
+  unscheduledSpots: Spot[];
+  spotGroups: SpotGroup[];
+}
+
+/**
+ * 匯出用的行程格式 (Exportable Trip Format)
+ * 用於 JSON 匯出/匯入
+ */
+export interface ExportableTripData {
+  version: string;        // 資料格式版本
+  exportedAt: string;     // 匯出時間 ISO 字串
+  trip: {
+    title: string;
+    dayCount: number;
+    days: DayPlan[];
+    unscheduledSpots: Spot[];
+    spotGroups: SpotGroup[];
+  };
 }
 
 export interface AIAnalysisResponse {

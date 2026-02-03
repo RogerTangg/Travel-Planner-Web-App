@@ -5,11 +5,12 @@
  * - 跨容器拖曳（待安排 <-> 各天行程）
  * - 同容器排序
  * - 拖曳狀態管理
+ * - 歷史紀錄整合
  * 
  * @module hooks/useDragAndDrop
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import {
   DragStartEvent,
   DragOverEvent,
@@ -20,7 +21,7 @@ import {
   useSensors
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { useTripStore, useUIStore } from '../stores';
+import { useTripStore, useUIStore, useHistoryStore } from '../stores';
 import { Trip, Spot, DayPlan } from '../types';
 
 // 常數定義
@@ -29,6 +30,9 @@ const UNSCHEDULED_ID = 'unscheduled-container';
 export const useDragAndDrop = () => {
   // 只訂閱需要響應變化的狀態
   const activeSpot = useUIStore(state => state.activeSpot);
+  
+  // 用於追蹤是否已保存快照（避免重複保存）
+  const hasSnapshotSavedRef = useRef(false);
 
   // 設定拖曳感應器
   const sensors = useSensors(
@@ -60,10 +64,12 @@ export const useDragAndDrop = () => {
 
   /**
    * 拖曳開始事件處理 (Handle Drag Start)
+   * 在開始拖曳時保存快照，用於 Undo
    */
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { getCurrentTrip } = useTripStore.getState();
+    const { getCurrentTrip, getSnapshot } = useTripStore.getState();
     const { setDragState } = useUIStore.getState();
+    const { pushHistory } = useHistoryStore.getState();
 
     const currentTrip = getCurrentTrip();
     if (!currentTrip) return;
@@ -77,6 +83,13 @@ export const useDragAndDrop = () => {
       currentTrip.days.flatMap((d: DayPlan) => d.spots).find((s: Spot) => s.id === spotId);
 
     setDragState(spotId, spot || null);
+    
+    // 保存拖曳前的快照
+    const snapshot = getSnapshot();
+    if (snapshot) {
+      pushHistory('移動景點', snapshot);
+      hasSnapshotSavedRef.current = true;
+    }
   }, []);
 
   /**
@@ -185,6 +198,7 @@ export const useDragAndDrop = () => {
     }
 
     clearDragState();
+    hasSnapshotSavedRef.current = false;  // 重置快照標記
   }, [findContainer]);
 
   return {

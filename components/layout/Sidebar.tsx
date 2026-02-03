@@ -5,6 +5,7 @@
  * - 應用程式標題
  * - 行程選擇器
  * - 景點搜尋/新增
+ * - 工具列（Undo、匯出/匯入、建立集合）
  * - 快速模組
  * - 標籤篩選
  * - 待安排景點清單
@@ -24,13 +25,20 @@ import {
   ChevronRight,
   Tag,
   PenLine,
-  X
+  X,
+  Undo2,
+  Redo2,
+  Download,
+  FolderInput,
+  Layers
 } from 'lucide-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useTripStore, useUIStore } from '../../stores';
-import { useSpotActions } from '../../hooks';
+import { useSpotActions, useHistory, useExportImport } from '../../hooks';
 import { SpotCategory } from '../../types';
 import { SpotCard } from '../SpotCard';
+import { SpotGroupCard } from '../SpotGroupCard';
+import { CreateGroupModal } from '../CreateGroupModal';
 import { DroppableContainer, LoadingOverlay, EmptyState } from '../common';
 
 // 常數
@@ -340,6 +348,82 @@ const QuickModules: React.FC = memo(() => {
 QuickModules.displayName = 'QuickModules';
 
 /**
+ * 工具列子元件 (Toolbar)
+ * 包含 Undo/Redo、匯出/匯入、建立集合
+ */
+const Toolbar: React.FC = memo(() => {
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const { handleUndo, handleRedo, canUndo, canRedo, lastAction } = useHistory();
+  const { handleExportTrip, triggerImportDialog } = useExportImport();
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-1 mb-2 p-1.5 bg-gray-50 rounded-lg">
+        {/* 左側：Undo/Redo */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleUndo}
+            disabled={!canUndo}
+            title={canUndo ? `復原：${lastAction}` : '沒有可復原的操作'}
+            className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-sakura-300 hover:text-sakura-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+          >
+            <Undo2 size={12} />
+            <span className="hidden sm:inline">復原</span>
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={!canRedo}
+            title="重做"
+            className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-sakura-300 hover:text-sakura-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+          >
+            <Redo2 size={12} />
+            <span className="hidden sm:inline">重做</span>
+          </button>
+        </div>
+
+        {/* 中間：匯出/匯入 */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleExportTrip}
+            title="匯出行程 JSON"
+            className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-green-300 hover:text-green-600 transition-all shadow-sm"
+          >
+            <Download size={12} />
+            <span className="hidden sm:inline">匯出</span>
+          </button>
+          <button
+            onClick={triggerImportDialog}
+            title="匯入行程 JSON"
+            className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
+          >
+            <FolderInput size={12} />
+            <span className="hidden sm:inline">匯入</span>
+          </button>
+        </div>
+
+        {/* 右側：建立集合 */}
+        <button
+          onClick={() => setShowCreateGroupModal(true)}
+          title="建立景點集合"
+          className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-purple-300 hover:text-purple-600 transition-all shadow-sm"
+        >
+          <Layers size={12} />
+          <span className="hidden sm:inline">集合</span>
+        </button>
+      </div>
+
+      {/* 建立集合 Modal */}
+      <CreateGroupModal
+        isOpen={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+      />
+    </>
+  );
+});
+
+Toolbar.displayName = 'Toolbar';
+
+/**
  * 標籤篩選子元件 (Tag Filter)
  */
 const TagFilter: React.FC = memo(() => {
@@ -411,12 +495,14 @@ const UnscheduledSpotsList: React.FC = memo(() => {
   const currentTripId = useTripStore(state => state.currentTripId);
   const currentTrip = trips.find(t => t.id === currentTripId) || null;
   const clearUnscheduledSpots = useTripStore(state => state.clearUnscheduledSpots);
+  const getGroupSpots = useTripStore(state => state.getGroupSpots);
   const selectedTagFilter = useUIStore(state => state.selectedTagFilter);
   const isScheduling = useUIStore(state => state.isScheduling);
   const activeId = useUIStore(state => state.activeId);
   const setSelectedSpot = useUIStore(state => state.setSelectedSpot);
   const showConfirm = useUIStore(state => state.showConfirm);
   const hideConfirm = useUIStore(state => state.hideConfirm);
+  const { saveBeforeAction } = useHistory();
   const { 
     handleDeleteSpot, 
     handleUpdateSpot, 
@@ -426,13 +512,32 @@ const UnscheduledSpotsList: React.FC = memo(() => {
 
   if (!currentTrip) return null;
 
-  // 根據標籤篩選景點
+  // 取得已在集合中的景點 ID
+  const groupedSpotIds = useMemo(() => {
+    return new Set((currentTrip.spotGroups || []).flatMap(g => g.spotIds));
+  }, [currentTrip.spotGroups]);
+
+  // 根據標籤篩選景點（排除已在集合中的）
   const filteredSpots = useMemo(() => {
-    if (!selectedTagFilter) return currentTrip.unscheduledSpots;
-    return currentTrip.unscheduledSpots.filter(
+    const ungroupedSpots = currentTrip.unscheduledSpots.filter(
+      spot => !groupedSpotIds.has(spot.id)
+    );
+    
+    if (!selectedTagFilter) return ungroupedSpots;
+    return ungroupedSpots.filter(
       spot => (spot.tags || []).includes(selectedTagFilter)
     );
-  }, [currentTrip.unscheduledSpots, selectedTagFilter]);
+  }, [currentTrip.unscheduledSpots, selectedTagFilter, groupedSpotIds]);
+
+  // 取得待安排區域的集合
+  const unscheduledGroups = useMemo(() => {
+    return (currentTrip.spotGroups || []).filter(group => {
+      // 集合內有任何景點在待安排區域
+      return group.spotIds.some(id => 
+        currentTrip.unscheduledSpots.some(s => s.id === id)
+      );
+    });
+  }, [currentTrip.spotGroups, currentTrip.unscheduledSpots]);
 
   const handleClearAll = () => {
     if (currentTrip.unscheduledSpots.length === 0) return;
@@ -442,11 +547,18 @@ const UnscheduledSpotsList: React.FC = memo(() => {
       message: `確定要刪除所有 ${currentTrip.unscheduledSpots.length} 個待安排景點嗎？此操作無法復原。`,
       type: 'danger',
       onConfirm: () => {
+        saveBeforeAction('清空待安排景點');
         clearUnscheduledSpots();
         setSelectedSpot(null);
         hideConfirm();
       }
     });
+  };
+
+  // 包裝 handleDeleteSpot 以加入歷史紀錄
+  const handleDeleteSpotWithHistory = (id: string) => {
+    saveBeforeAction('刪除景點');
+    handleDeleteSpot(id);
   };
 
   return (
@@ -489,13 +601,30 @@ const UnscheduledSpotsList: React.FC = memo(() => {
         )}
       </div>
       
-      {/* 景點列表 */}
+      {/* 景點集合列表 */}
+      {unscheduledGroups.map(group => {
+        const groupSpots = currentTrip.unscheduledSpots.filter(
+          s => group.spotIds.includes(s.id)
+        );
+        return (
+          <SpotGroupCard
+            key={group.id}
+            group={group}
+            spots={groupSpots}
+            onDeleteSpot={handleDeleteSpotWithHistory}
+            onUpdateSpot={handleUpdateSpot}
+            onDuplicateSpot={handleDuplicateSpot}
+          />
+        );
+      })}
+      
+      {/* 未分組景點列表 */}
       <SortableContext 
         id={UNSCHEDULED_ID}
         items={filteredSpots.map(s => s.id)}
         strategy={verticalListSortingStrategy}
       >
-        {filteredSpots.length === 0 ? (
+        {filteredSpots.length === 0 && unscheduledGroups.length === 0 ? (
           <EmptyState 
             variant={currentTrip.unscheduledSpots.length === 0 ? 'unscheduled' : 'filtered'} 
           />
@@ -504,7 +633,7 @@ const UnscheduledSpotsList: React.FC = memo(() => {
             <SpotCard 
               key={spot.id} 
               spot={spot} 
-              onDelete={handleDeleteSpot} 
+              onDelete={handleDeleteSpotWithHistory} 
               onClick={setSelectedSpot}
               onUpdate={handleUpdateSpot}
               onDuplicate={handleDuplicateSpot}
@@ -576,6 +705,7 @@ export const Sidebar: React.FC = () => {
       {/* 搜尋與工具區塊 */}
       <div className="p-3 border-b border-gray-100">
         <SpotSearchInput />
+        <Toolbar />
         <QuickModules />
         <TagFilter />
       </div>
