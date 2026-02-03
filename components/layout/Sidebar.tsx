@@ -493,8 +493,11 @@ const UnscheduledSpotsList: React.FC = memo(() => {
   }, [currentTrip.unscheduledSpots, selectedTagFilter, groupedSpotIds]);
 
   // 取得待安排區域的集合
+  // 空集合或集合內有任何景點在待安排區域時，都應該顯示
   const unscheduledGroups = useMemo(() => {
     return (currentTrip.spotGroups || []).filter(group => {
+      // 空集合應該顯示在待安排區域（讓使用者可以拖曳景點進去）
+      if (group.spotIds.length === 0) return true;
       // 集合內有任何景點在待安排區域
       return group.spotIds.some(id => 
         currentTrip.unscheduledSpots.some(s => s.id === id)
