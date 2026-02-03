@@ -77,6 +77,17 @@ export const useDragAndDrop = () => {
   }, []);
 
   /**
+   * 檢查是否為可拖曳的集合 (Check if draggable is a group)
+   */
+  const isSortableGroup = useCallback((id: string | null): string | null => {
+    if (!id || typeof id !== 'string') return null;
+    if (id.startsWith('sortable-group-')) {
+      return id.replace('sortable-group-', '');
+    }
+    return null;
+  }, []);
+
+  /**
    * 拖曳開始事件處理 (Handle Drag Start)
    * 在開始拖曳時保存快照，用於 Undo
    */
@@ -89,14 +100,27 @@ export const useDragAndDrop = () => {
     if (!currentTrip) return;
 
     const { active } = event;
-    const spotId = active.id as string;
+    const activeId = active.id as string;
 
-    // 找出被拖曳的景點
-    const spot =
-      currentTrip.unscheduledSpots.find((s: Spot) => s.id === spotId) ||
-      currentTrip.days.flatMap((d: DayPlan) => d.spots).find((s: Spot) => s.id === spotId);
+    // 檢查是否為拖曳整個集合
+    const groupId = isSortableGroup(activeId);
+    if (groupId) {
+      // 拖曳集合時，設定第一個景點作為 activeSpot（用於視覺反饋）
+      const group = (currentTrip.spotGroups || []).find(g => g.id === groupId);
+      if (group && group.spotIds.length > 0) {
+        const firstSpot = currentTrip.unscheduledSpots.find(s => group.spotIds.includes(s.id));
+        setDragState(activeId, firstSpot || null);
+      } else {
+        setDragState(activeId, null);
+      }
+    } else {
+      // 找出被拖曳的景點
+      const spot =
+        currentTrip.unscheduledSpots.find((s: Spot) => s.id === activeId) ||
+        currentTrip.days.flatMap((d: DayPlan) => d.spots).find((s: Spot) => s.id === activeId);
 
-    setDragState(spotId, spot || null);
+      setDragState(activeId, spot || null);
+    }
     
     // 保存拖曳前的快照
     const snapshot = getSnapshot();
@@ -104,7 +128,7 @@ export const useDragAndDrop = () => {
       pushHistory('移動景點', snapshot);
       hasSnapshotSavedRef.current = true;
     }
-  }, []);
+  }, [isSortableGroup]);
 
   /**
    * 拖曳經過事件處理 - 跨容器移動 (Handle Drag Over)
@@ -118,6 +142,9 @@ export const useDragAndDrop = () => {
 
     const { active, over } = event;
     if (!over) return;
+    
+    // 如果是拖曳整個集合，不處理 dragOver（在 dragEnd 處理）
+    if (isSortableGroup(active.id as string)) return;
     
     const overId = over.id as string;
     
@@ -167,10 +194,10 @@ export const useDragAndDrop = () => {
   }, [activeSpot, findContainer]);
 
   /**
-   * 拖曳結束事件處理 - 同容器排序或加入集合 (Handle Drag End)
+   * 拖曳結束事件處理 - 同容器排序、加入集合、或移動整個集合到日行程 (Handle Drag End)
    */
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { getCurrentTrip, updateCurrentTrip, addSpotsToGroup, removeSpotsFromGroup } = useTripStore.getState();
+    const { getCurrentTrip, updateCurrentTrip, addSpotsToGroup, removeSpotsFromGroup, deleteSpotGroup } = useTripStore.getState();
     const { clearDragState } = useUIStore.getState();
 
     const currentTrip = getCurrentTrip();
@@ -180,12 +207,48 @@ export const useDragAndDrop = () => {
     }
 
     const { active, over } = event;
-    const spotId = active.id as string;
+    const activeId = active.id as string;
     const overId = over?.id as string || '';
     
-    // 檢查是否拖曳到集合上
+    // 1. 檢查是否為拖曳整個集合到日行程
+    const draggedGroupId = isSortableGroup(activeId);
+    if (draggedGroupId) {
+      const overContainer = findContainer(overId);
+      
+      // 如果目標是某一天的行程
+      if (overContainer && overContainer !== UNSCHEDULED_ID && !overContainer.startsWith('group-')) {
+        const group = (currentTrip.spotGroups || []).find(g => g.id === draggedGroupId);
+        if (group && group.spotIds.length > 0) {
+          // 取得集合內的所有景點
+          const spotsToMove = currentTrip.unscheduledSpots.filter(s => group.spotIds.includes(s.id));
+          
+          if (spotsToMove.length > 0) {
+            updateCurrentTrip((trip: Trip) => ({
+              ...trip,
+              // 從待安排區移除這些景點
+              unscheduledSpots: trip.unscheduledSpots.filter(s => !group.spotIds.includes(s.id)),
+              // 加入到目標日行程
+              days: trip.days.map((day: DayPlan) =>
+                day.id === overContainer
+                  ? { ...day, spots: [...day.spots, ...spotsToMove] }
+                  : day
+              ),
+              // 刪除集合（因為景點已移到日行程）
+              spotGroups: (trip.spotGroups || []).filter(g => g.id !== draggedGroupId)
+            }));
+          }
+        }
+      }
+      
+      clearDragState();
+      hasSnapshotSavedRef.current = false;
+      return;
+    }
+    
+    // 2. 檢查是否拖曳景點到集合上
     const targetGroupId = isGroupTarget(overId);
     if (targetGroupId) {
+      const spotId = activeId;
       // 確保景點在待安排區域（集合只在待安排區域顯示）
       const spotInUnscheduled = currentTrip.unscheduledSpots.some((s: Spot) => s.id === spotId);
       const spotInDays = currentTrip.days.some((d: DayPlan) => d.spots.some((s: Spot) => s.id === spotId));
@@ -197,7 +260,6 @@ export const useDragAndDrop = () => {
           .find((s: Spot) => s.id === spotId);
         
         if (spotToMove) {
-          const { updateCurrentTrip } = useTripStore.getState();
           updateCurrentTrip((trip: Trip) => ({
             ...trip,
             days: trip.days.map((day: DayPlan) => ({
@@ -225,15 +287,16 @@ export const useDragAndDrop = () => {
       return;
     }
 
-    const activeContainer = findContainer(active.id as string);
+    // 3. 一般景點的容器內排序
+    const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
 
     // 同容器內排序
     if (activeContainer && overContainer && activeContainer === overContainer) {
       if (activeContainer === UNSCHEDULED_ID) {
         // 待安排區排序
-        const oldIndex = currentTrip.unscheduledSpots.findIndex((s: Spot) => s.id === active.id);
-        const newIndex = currentTrip.unscheduledSpots.findIndex((s: Spot) => s.id === over?.id);
+        const oldIndex = currentTrip.unscheduledSpots.findIndex((s: Spot) => s.id === activeId);
+        const newIndex = currentTrip.unscheduledSpots.findIndex((s: Spot) => s.id === overId);
 
         if (oldIndex !== newIndex && newIndex !== -1) {
           updateCurrentTrip((trip: Trip) => ({
@@ -244,15 +307,20 @@ export const useDragAndDrop = () => {
       } else {
         // 日行程排序
         const dayIndex = currentTrip.days.findIndex((d: DayPlan) => d.id === activeContainer);
+        if (dayIndex === -1) {
+          clearDragState();
+          hasSnapshotSavedRef.current = false;
+          return;
+        }
         const spots = currentTrip.days[dayIndex].spots;
-        const oldIndex = spots.findIndex((s: Spot) => s.id === active.id);
+        const oldIndex = spots.findIndex((s: Spot) => s.id === activeId);
 
         let newIndex;
         // 如果放在天容器上（而非具體景點），則移到最後
-        if (currentTrip.days.some((d: DayPlan) => d.id === over?.id)) {
+        if (currentTrip.days.some((d: DayPlan) => d.id === overId)) {
           newIndex = spots.length - 1;
         } else {
-          newIndex = spots.findIndex((s: Spot) => s.id === over?.id);
+          newIndex = spots.findIndex((s: Spot) => s.id === overId);
         }
 
         if (oldIndex !== newIndex && newIndex !== -1) {
@@ -270,7 +338,7 @@ export const useDragAndDrop = () => {
 
     clearDragState();
     hasSnapshotSavedRef.current = false;  // 重置快照標記
-  }, [findContainer, isGroupTarget]);
+  }, [findContainer, isGroupTarget, isSortableGroup]);
 
   return {
     sensors,
