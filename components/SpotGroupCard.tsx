@@ -285,7 +285,7 @@ export const SpotGroupCard: React.FC<SpotGroupCardProps> = memo(({
           }`}
           style={{ 
             maxHeight: spots.length > 0 ? MAX_SPOTS_HEIGHT : 'auto',
-            overflowY: spots.length > 2 ? 'auto' : 'visible'
+            overflowY: 'auto'
           }}
         >
           {spots.length === 0 ? (
