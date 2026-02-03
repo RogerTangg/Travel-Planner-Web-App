@@ -342,29 +342,6 @@ export const useSpotActions = () => {
     updateSpot(id, updates);
   }, []);
 
-  /**
-   * 快速新增空集合 (Add Empty Group)
-   * 在待安排區域建立一個空的景點集合，使用者可拖曳景點至其中
-   */
-  const handleAddEmptyGroup = useCallback(() => {
-    const { getCurrentTrip, createSpotGroup } = useTripStore.getState();
-    const { showToast } = useUIStore.getState();
-
-    const currentTrip = getCurrentTrip();
-    if (!currentTrip) return;
-
-    // 計算新集合編號
-    const existingGroupCount = (currentTrip.spotGroups || []).length;
-    const groupName = `新集合 ${existingGroupCount + 1}`;
-    
-    // 預設顏色循環
-    const colors = ['#F472B6', '#FB923C', '#FBBF24', '#34D399', '#60A5FA', '#A78BFA'];
-    const color = colors[existingGroupCount % colors.length];
-
-    createSpotGroup(groupName, [], color);
-    showToast(`✅ 已建立「${groupName}」，拖曳景點至其中即可加入`, 'success');
-  }, []);
-
   return {
     handleAddSpot,
     handleAddSpotFromMap,
@@ -374,7 +351,6 @@ export const useSpotActions = () => {
     handleOptimizeDay,
     handleDeleteSpot,
     handleDuplicateSpot,
-    handleUpdateSpot,
-    handleAddEmptyGroup
+    handleUpdateSpot
   };
 };

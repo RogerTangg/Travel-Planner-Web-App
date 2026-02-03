@@ -128,80 +128,90 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   const dropdown = isOpen && dropdownPos && createPortal(
     <div
       ref={dropdownRef}
-      className="fixed z-[9999] bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
-      style={{ top: dropdownPos.top, left: dropdownPos.left, width: 180 }}
+      className="fixed z-[9999] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
+      style={{ top: dropdownPos.top, left: dropdownPos.left, width: 200 }}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      {/* Time Selector */}
-      <div className="p-3">
-        <div className="flex items-center justify-center gap-2">
+      {/* Time Selector - 行動端優化觸控目標 */}
+      <div className="p-4">
+        <div className="flex items-center justify-center gap-3">
           {/* Hours */}
           <div className="flex flex-col items-center">
             <button
               type="button"
               onClick={() => adjustHours(1)}
-              className="w-8 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
+              className="w-10 h-8 md:w-8 md:h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 rounded-lg md:rounded transition-all"
+              aria-label="增加小時"
             >
-              <ChevronUp size={16} />
+              <ChevronUp size={20} className="md:w-[16px] md:h-[16px]" />
             </button>
             <input
               type="text"
+              inputMode="numeric"
               value={hours.toString().padStart(2, '0')}
               onChange={handleHoursInput}
-              className="w-10 h-8 text-center text-lg font-bold text-gray-800 font-mono bg-gray-50 rounded border border-gray-200 focus:outline-none focus:border-sakura-400"
+              className="w-12 h-10 md:w-10 md:h-8 text-center text-xl md:text-lg font-bold text-gray-800 font-mono bg-gray-50 rounded-lg md:rounded border border-gray-200 focus:outline-none focus:border-sakura-400"
               maxLength={2}
+              aria-label="小時"
             />
             <button
               type="button"
               onClick={() => adjustHours(-1)}
-              className="w-8 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
+              className="w-10 h-8 md:w-8 md:h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 rounded-lg md:rounded transition-all"
+              aria-label="減少小時"
             >
-              <ChevronDown size={16} />
+              <ChevronDown size={20} className="md:w-[16px] md:h-[16px]" />
             </button>
           </div>
 
-          <span className="text-lg font-bold text-gray-300">:</span>
+          <span className="text-xl md:text-lg font-bold text-gray-300">:</span>
 
           {/* Minutes */}
           <div className="flex flex-col items-center">
             <button
               type="button"
               onClick={() => adjustMinutes(5)}
-              className="w-8 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
+              className="w-10 h-8 md:w-8 md:h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 rounded-lg md:rounded transition-all"
+              aria-label="增加分鐘"
             >
-              <ChevronUp size={16} />
+              <ChevronUp size={20} className="md:w-[16px] md:h-[16px]" />
             </button>
             <input
               type="text"
+              inputMode="numeric"
               value={minutes.toString().padStart(2, '0')}
               onChange={handleMinutesInput}
-              className="w-10 h-8 text-center text-lg font-bold text-gray-800 font-mono bg-gray-50 rounded border border-gray-200 focus:outline-none focus:border-sakura-400"
+              className="w-12 h-10 md:w-10 md:h-8 text-center text-xl md:text-lg font-bold text-gray-800 font-mono bg-gray-50 rounded-lg md:rounded border border-gray-200 focus:outline-none focus:border-sakura-400"
               maxLength={2}
+              aria-label="分鐘"
             />
             <button
               type="button"
               onClick={() => adjustMinutes(-5)}
-              className="w-8 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-all"
+              className="w-10 h-8 md:w-8 md:h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 rounded-lg md:rounded transition-all"
+              aria-label="減少分鐘"
             >
-              <ChevronDown size={16} />
+              <ChevronDown size={20} className="md:w-[16px] md:h-[16px]" />
             </button>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
+        {/* Actions - 行動端增大按鈕 */}
+        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
           <button
             type="button"
             onClick={handleClear}
-            className="flex-1 px-2 py-1 text-[11px] bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors font-medium"
+            className="flex-1 px-3 py-2.5 md:px-2 md:py-1 text-sm md:text-[11px] bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-600 rounded-lg md:rounded transition-colors font-medium"
+            aria-label="清除時間"
           >
             清除
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="flex-1 px-2 py-1 text-[11px] bg-sakura-500 hover:bg-sakura-600 text-white rounded transition-colors font-medium"
+            className="flex-1 px-3 py-2.5 md:px-2 md:py-1 text-sm md:text-[11px] bg-sakura-500 hover:bg-sakura-600 active:bg-sakura-700 text-white rounded-lg md:rounded transition-colors font-medium"
+            aria-label="確定選擇時間"
           >
             確定
           </button>
@@ -213,21 +223,22 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Trigger Button */}
+      {/* Trigger Button - 行動端增大觸控區域 */}
       <button
         ref={triggerRef}
         type="button"
         onClick={handleTriggerClick}
         onPointerDown={(e) => e.stopPropagation()}
+        aria-label={label || '選擇時間'}
         className={`
-          flex items-center justify-center transition-all duration-200
+          flex items-center justify-center transition-all duration-200 min-h-[32px] md:min-h-0 px-1
           ${value
-            ? 'text-gray-800 hover:text-sakura-600'
-            : 'px-1.5 py-0.5 rounded border border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500'
+            ? 'text-gray-800 hover:text-sakura-600 active:text-sakura-700'
+            : 'px-1.5 py-1 md:py-0.5 rounded border border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500 active:border-sakura-300 active:text-sakura-500'
           }
         `}
       >
-        <span className={`font-mono ${value ? 'text-base font-bold' : 'text-xs'}`}>
+        <span className={`font-mono ${value ? 'text-sm md:text-base font-bold' : 'text-xs'}`}>
           {value || '--:--'}
         </span>
       </button>

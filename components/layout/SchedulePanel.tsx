@@ -5,7 +5,6 @@
  * - 每日行程卡片（含背景圖）
  * - 智慧排序功能
  * - 收回全部功能
- * - 景點集合支援
  * 
  * @module components/layout/SchedulePanel
  */
@@ -16,7 +15,6 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useTripStore, useUIStore } from '../../stores';
 import { useSpotActions, useHistory } from '../../hooks';
 import { SpotCard } from '../SpotCard';
-import { SpotGroupCard } from '../SpotGroupCard';
 import { DroppableContainer, LoadingOverlay, DayEmptyState } from '../common';
 
 /**
@@ -59,24 +57,6 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
     return day.spots.reduce((acc, spot) => acc + (spot.photos?.length || 0), 0);
   }, [day.spots]);
 
-  // 取得該日景點所屬的集合
-  const dayGroups = useMemo(() => {
-    const spotIds = new Set(day.spots.map(s => s.id));
-    return (currentTrip.spotGroups || []).filter(group => 
-      group.spotIds.some(id => spotIds.has(id))
-    );
-  }, [currentTrip.spotGroups, day.spots]);
-
-  // 取得已在集合中的景點 ID
-  const groupedSpotIds = useMemo(() => {
-    return new Set(dayGroups.flatMap(g => g.spotIds));
-  }, [dayGroups]);
-
-  // 未分組的景點
-  const ungroupedSpots = useMemo(() => {
-    return day.spots.filter(s => !groupedSpotIds.has(s.id));
-  }, [day.spots, groupedSpotIds]);
-
   // 包裝 handleDeleteSpot 以加入歷史紀錄
   const handleDeleteSpotWithHistory = (id: string) => {
     saveBeforeAction('刪除景點');
@@ -84,10 +64,10 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
   };
 
   return (
-    <div className="relative pl-8 border-l-2 border-dashed border-gray-200/80">
-      {/* 日期標記 (Day Marker) */}
-      <div className="absolute -left-[21px] top-0 flex flex-col items-center">
-        <div className="w-10 h-10 rounded-full bg-white border-4 border-sakura-100 flex items-center justify-center shadow-sm z-10 text-sakura-600 font-black text-sm">
+    <div className="relative pl-6 md:pl-8 border-l-2 border-dashed border-gray-200/80">
+      {/* 日期標記 (Day Marker) - 行動端調整位置 */}
+      <div className="absolute -left-[17px] md:-left-[21px] top-0 flex flex-col items-center">
+        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border-4 border-sakura-100 flex items-center justify-center shadow-sm z-10 text-sakura-600 font-black text-xs md:text-sm">
           {dayIndex + 1}
         </div>
       </div>
@@ -95,9 +75,9 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
       {/* 標題列 (Header) */}
       <div className="flex items-center justify-between mb-4 pl-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+          <h3 className="text-base md:text-lg font-bold text-gray-800">{title}</h3>
           {totalPhotos > 0 && (
-            <span className="flex items-center gap-1 px-2 py-0.5 bg-sakura-50 text-sakura-600 text-xs rounded-full">
+            <span className="flex items-center gap-1 px-2 py-0.5 bg-sakura-50 text-sakura-600 text-[10px] md:text-xs rounded-full">
               <ImageIcon size={12} />
               {totalPhotos}
             </span>
@@ -106,10 +86,12 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
         <button 
           onClick={() => handleOptimizeDay(dayId)}
           disabled={day.spots.length < 2}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600 hover:text-sakura-600 hover:border-sakura-200 transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 md:px-3 py-2 md:py-1.5 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600 hover:text-sakura-600 hover:border-sakura-200 active:bg-sakura-50 active:scale-95 transition-all disabled:opacity-50 min-h-[36px] md:min-h-0"
+          aria-label="智慧排序此日景點"
         >
-          <Sparkles size={12} />
-          智慧排序
+          <Sparkles size={14} className="md:w-[12px] md:h-[12px]" />
+          <span className="hidden xs:inline">智慧排序</span>
+          <span className="xs:hidden">排序</span>
         </button>
       </div>
 
@@ -135,31 +117,16 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
         <div className="relative z-10 p-4">
           {isOptimizing === dayId && <LoadingOverlay />}
           
-          {/* 景點集合列表 */}
-          {dayGroups.map(group => {
-            const groupSpots = day.spots.filter(s => group.spotIds.includes(s.id));
-            return (
-              <SpotGroupCard
-                key={group.id}
-                group={group}
-                spots={groupSpots}
-                onDeleteSpot={handleDeleteSpotWithHistory}
-                onUpdateSpot={handleUpdateSpot}
-                onDuplicateSpot={handleDuplicateSpot}
-              />
-            );
-          })}
-          
-          {/* 未分組景點列表 */}
+          {/* 景點列表 */}
           <SortableContext 
             id={dayId}
-            items={ungroupedSpots.map(s => s.id)}
+            items={day.spots.map(s => s.id)}
             strategy={verticalListSortingStrategy}
           >
             {day.spots.length === 0 ? (
               <DayEmptyState />
             ) : (
-              ungroupedSpots.map((spot, index) => (
+              day.spots.map((spot, index) => (
                 <div key={spot.id} className="relative">
                   <SpotCard 
                     spot={spot} 
@@ -169,7 +136,7 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
                     onDuplicate={handleDuplicateSpot}
                   />
                   {/* 連接線 */}
-                  {index < ungroupedSpots.length - 1 && (
+                  {index < day.spots.length - 1 && (
                     <div className="absolute left-[26px] bottom-[-12px] top-[100%] w-0.5 bg-gray-100 z-0 h-3" />
                   )}
                 </div>
@@ -233,41 +200,44 @@ export const SchedulePanel: React.FC = () => {
         </h2>
         
         <div className="flex items-center gap-2 md:gap-3">
-          {/* Undo/Redo 按鈕 */}
+          {/* Undo/Redo 按鈕 - 行動端增大觸控區域 */}
           <div className="flex items-center gap-1">
             <button
               onClick={handleUndo}
               disabled={!canUndo}
               title={canUndo ? `復原：${lastAction}` : '沒有可復原的操作'}
-              className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+              aria-label={canUndo ? `復原：${lastAction}` : '沒有可復原的操作'}
+              className="flex items-center justify-center gap-1 px-2.5 md:px-2 py-2 md:py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 active:bg-sakura-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0"
             >
-              <Undo2 size={12} />
+              <Undo2 size={14} className="md:w-[12px] md:h-[12px]" />
               <span className="hidden sm:inline">復原</span>
             </button>
             <button
               onClick={handleRedo}
               disabled={!canRedo}
               title="重做"
-              className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+              aria-label="重做上一步操作"
+              className="flex items-center justify-center gap-1 px-2.5 md:px-2 py-2 md:py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 active:bg-sakura-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0"
             >
-              <Redo2 size={12} />
+              <Redo2 size={14} className="md:w-[12px] md:h-[12px]" />
               <span className="hidden sm:inline">重做</span>
             </button>
           </div>
 
           <div className="w-px h-5 bg-gray-200 hidden sm:block" />
           
-          <div className="text-[10px] md:text-xs text-gray-400">
+          <div className="text-[10px] md:text-xs text-gray-400 hidden xs:block">
             {totalScheduledSpots} 個行程點
           </div>
           
           {totalScheduledSpots > 0 && (
             <button
               onClick={handleCollectAllSpots}
-              className="flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-amber-300 hover:text-amber-600 active:scale-95 transition-all"
+              aria-label="收回全部景點至待安排清單"
+              className="flex items-center justify-center gap-1 px-2.5 md:px-2 py-2 md:py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-amber-300 hover:text-amber-600 active:bg-amber-50 active:scale-95 transition-all min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0"
               title="收回全部景點至待安排清單"
             >
-              <Undo2 size={12} />
+              <Undo2 size={14} className="md:w-[12px] md:h-[12px]" />
               <span className="hidden sm:inline">收回全部</span>
             </button>
           )}

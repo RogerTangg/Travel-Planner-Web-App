@@ -4,7 +4,6 @@
  * 使用 Zustand 管理行程相關狀態，包括：
  * - 行程 CRUD 操作
  * - 景點管理
- * - 景點集合管理
  * - localStorage 持久化
  * - 匯出/匯入功能
  * 
@@ -13,7 +12,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Trip, DayPlan, Spot, SpotCategory, SpotGroup, TripSnapshot, ExportableTripData } from '../types';
+import { Trip, DayPlan, Spot, SpotCategory, TripSnapshot, ExportableTripData } from '../types';
 
 // --- Constants ---
 const LOCAL_STORAGE_KEY = 'travel-planner-trips';
@@ -36,7 +35,6 @@ export const createNewTrip = (title: string = '新行程'): Trip => ({
     { id: 'day-3', title: 'Day 3', spots: [] }
   ],
   unscheduledSpots: [],
-  spotGroups: [],
   createdAt: Date.now(),
   updatedAt: Date.now()
 });
@@ -107,15 +105,6 @@ interface TripState {
   clearUnscheduledSpots: () => void;
   collectAllSpots: () => void;
   
-  // 景點集合操作 (Spot Group Actions)
-  createSpotGroup: (name: string, spotIds: string[], color?: string) => SpotGroup;
-  updateSpotGroup: (groupId: string, updates: Partial<SpotGroup>) => void;
-  deleteSpotGroup: (groupId: string, deleteSpots?: boolean) => void;
-  addSpotsToGroup: (groupId: string, spotIds: string[]) => void;
-  removeSpotsFromGroup: (groupId: string, spotIds: string[]) => void;
-  toggleGroupCollapsed: (groupId: string) => void;
-  getGroupSpots: (groupId: string) => Spot[];
-  
   // 匯出/匯入操作 (Export/Import Actions)
   exportTrip: () => ExportableTripData | null;
   importTrip: (data: ExportableTripData) => boolean;
@@ -178,8 +167,7 @@ export const useTripStore = create<TripState>()(
         if (!trip) return null;
         return {
           days: JSON.parse(JSON.stringify(trip.days)),
-          unscheduledSpots: JSON.parse(JSON.stringify(trip.unscheduledSpots)),
-          spotGroups: JSON.parse(JSON.stringify(trip.spotGroups || []))
+          unscheduledSpots: JSON.parse(JSON.stringify(trip.unscheduledSpots))
         };
       },
       
@@ -249,7 +237,6 @@ export const useTripStore = create<TripState>()(
                   ...t, 
                   days: snapshot.days,
                   unscheduledSpots: snapshot.unscheduledSpots,
-                  spotGroups: snapshot.spotGroups,
                   updatedAt: Date.now() 
                 }
               : t
@@ -468,130 +455,6 @@ export const useTripStore = create<TripState>()(
         });
       },
       
-      // --- 景點集合操作 (Spot Group Actions) ---
-      
-      /**
-       * 建立景點集合 (Create Spot Group)
-       */
-      createSpotGroup: (name, spotIds, color) => {
-        const newGroup: SpotGroup = {
-          id: crypto.randomUUID(),
-          name,
-          color: color || '#F472B6', // 預設櫻花粉色
-          spotIds,
-          collapsed: false
-        };
-        
-        get().updateCurrentTrip(trip => ({
-          ...trip,
-          spotGroups: [...(trip.spotGroups || []), newGroup]
-        }));
-        
-        return newGroup;
-      },
-      
-      /**
-       * 更新景點集合 (Update Spot Group)
-       */
-      updateSpotGroup: (groupId, updates) => {
-        get().updateCurrentTrip(trip => ({
-          ...trip,
-          spotGroups: (trip.spotGroups || []).map(g => 
-            g.id === groupId ? { ...g, ...updates } : g
-          )
-        }));
-      },
-      
-      /**
-       * 刪除景點集合 (Delete Spot Group)
-       * @param deleteSpots - 是否同時刪除集合內的景點
-       */
-      deleteSpotGroup: (groupId, deleteSpots = false) => {
-        get().updateCurrentTrip(trip => {
-          const group = (trip.spotGroups || []).find(g => g.id === groupId);
-          if (!group) return trip;
-          
-          let newTrip = {
-            ...trip,
-            spotGroups: (trip.spotGroups || []).filter(g => g.id !== groupId)
-          };
-          
-          // 若需要刪除集合內的景點
-          if (deleteSpots) {
-            const spotIdsToDelete = new Set(group.spotIds);
-            newTrip = {
-              ...newTrip,
-              unscheduledSpots: newTrip.unscheduledSpots.filter(s => !spotIdsToDelete.has(s.id)),
-              days: newTrip.days.map(d => ({
-                ...d,
-                spots: d.spots.filter(s => !spotIdsToDelete.has(s.id))
-              }))
-            };
-          }
-          
-          return newTrip;
-        });
-      },
-      
-      /**
-       * 新增景點到集合 (Add Spots to Group)
-       */
-      addSpotsToGroup: (groupId, spotIds) => {
-        get().updateCurrentTrip(trip => ({
-          ...trip,
-          spotGroups: (trip.spotGroups || []).map(g => 
-            g.id === groupId 
-              ? { ...g, spotIds: [...new Set([...g.spotIds, ...spotIds])] }
-              : g
-          )
-        }));
-      },
-      
-      /**
-       * 從集合移除景點 (Remove Spots from Group)
-       */
-      removeSpotsFromGroup: (groupId, spotIds) => {
-        const spotIdSet = new Set(spotIds);
-        get().updateCurrentTrip(trip => ({
-          ...trip,
-          spotGroups: (trip.spotGroups || []).map(g => 
-            g.id === groupId 
-              ? { ...g, spotIds: g.spotIds.filter(id => !spotIdSet.has(id)) }
-              : g
-          )
-        }));
-      },
-      
-      /**
-       * 切換集合展開/收合 (Toggle Group Collapsed)
-       */
-      toggleGroupCollapsed: (groupId) => {
-        get().updateCurrentTrip(trip => ({
-          ...trip,
-          spotGroups: (trip.spotGroups || []).map(g => 
-            g.id === groupId ? { ...g, collapsed: !g.collapsed } : g
-          )
-        }));
-      },
-      
-      /**
-       * 取得集合內的景點 (Get Group Spots)
-       */
-      getGroupSpots: (groupId) => {
-        const trip = get().getCurrentTrip();
-        if (!trip) return [];
-        
-        const group = (trip.spotGroups || []).find(g => g.id === groupId);
-        if (!group) return [];
-        
-        const allSpots = [...trip.unscheduledSpots, ...trip.days.flatMap(d => d.spots)];
-        const spotMap = new Map(allSpots.map(s => [s.id, s]));
-        
-        return group.spotIds
-          .map(id => spotMap.get(id))
-          .filter(Boolean) as Spot[];
-      },
-      
       // --- 匯出/匯入操作 (Export/Import Actions) ---
       
       /**
@@ -608,8 +471,7 @@ export const useTripStore = create<TripState>()(
             title: trip.title,
             dayCount: trip.dayCount,
             days: trip.days,
-            unscheduledSpots: trip.unscheduledSpots,
-            spotGroups: trip.spotGroups || []
+            unscheduledSpots: trip.unscheduledSpots
           }
         };
         
@@ -641,10 +503,6 @@ export const useTripStore = create<TripState>()(
               ...spot,
               id: crypto.randomUUID() // 重新產生 ID 避免衝突
             })),
-            spotGroups: (data.trip.spotGroups || []).map(group => ({
-              ...group,
-              id: crypto.randomUUID() // 重新產生 ID 避免衝突
-            })),
             createdAt: Date.now(),
             updatedAt: Date.now()
           };
@@ -670,15 +528,6 @@ export const useTripStore = create<TripState>()(
             oldToNewSpotIds.set(spot.id, newId);
             return { ...spot, id: newId };
           });
-          
-          // 更新集合內的景點 ID 對應
-          newTrip.spotGroups = (data.trip.spotGroups || []).map(group => ({
-            ...group,
-            id: crypto.randomUUID(),
-            spotIds: group.spotIds
-              .map(oldId => oldToNewSpotIds.get(oldId))
-              .filter(Boolean) as string[]
-          }));
           
           set(state => ({
             trips: [newTrip, ...state.trips],

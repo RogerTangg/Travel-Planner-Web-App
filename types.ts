@@ -47,18 +47,6 @@ export interface Spot {
   photos?: SpotPhoto[];   // 景點照片陣列（來自 Google Places API）
 }
 
-/**
- * 景點集合 (Spot Group)
- * 將多個相關景點組合在一起，方便一起拖曳和管理
- */
-export interface SpotGroup {
-  id: string;
-  name: string;           // 集合名稱（例如：「涉谷購物區」）
-  color?: string;         // 集合顯示顏色
-  spotIds: string[];      // 包含的景點 ID
-  collapsed?: boolean;    // 是否收合顯示
-}
-
 export interface DayPlan {
   id: string;
   title: string; // e.g., "Day 1"
@@ -76,7 +64,6 @@ export interface Trip {
   dayCount: number;
   days: DayPlan[];
   unscheduledSpots: Spot[];
-  spotGroups: SpotGroup[];  // 景點集合
   createdAt: number;
   updatedAt: number;
 }
@@ -99,7 +86,6 @@ export interface HistoryItem {
 export interface TripSnapshot {
   days: DayPlan[];
   unscheduledSpots: Spot[];
-  spotGroups: SpotGroup[];
 }
 
 /**
@@ -114,7 +100,6 @@ export interface ExportableTripData {
     dayCount: number;
     days: DayPlan[];
     unscheduledSpots: Spot[];
-    spotGroups: SpotGroup[];
   };
 }
 

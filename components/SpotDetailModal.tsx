@@ -83,31 +83,34 @@ const PhotoGallery: React.FC<{ photos: Spot['photos']; spotName: string }> = mem
         className="w-full h-full object-cover"
       />
       
-      {/* 導航按鈕 */}
+      {/* 導航按鈕 - 行動端增大觸控區域 */}
       {photos.length > 1 && (
         <>
           <button
             onClick={handlePrev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center transition-colors"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-8 md:h-8 bg-black/40 hover:bg-black/60 active:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            aria-label="上一張照片"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={24} className="md:w-[20px] md:h-[20px]" />
           </button>
           <button
             onClick={handleNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-8 md:h-8 bg-black/40 hover:bg-black/60 active:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            aria-label="下一張照片"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={24} className="md:w-[20px] md:h-[20px]" />
           </button>
           
-          {/* 照片指示器 */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          {/* 照片指示器 - 行動端增大觸控目標 */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 md:gap-1.5">
             {photos.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  idx === currentIndex ? 'bg-white w-4' : 'bg-white/50'
+                className={`w-3 h-3 md:w-2 md:h-2 rounded-full transition-all ${
+                  idx === currentIndex ? 'bg-white w-5 md:w-4' : 'bg-white/50'
                 }`}
+                aria-label={`跳到第 ${idx + 1} 張照片`}
               />
             ))}
           </div>
@@ -146,12 +149,13 @@ export const SpotDetailModal: React.FC<SpotDetailModalProps> = memo(({ spot, isO
       
       {/* Modal */}
       <div className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-[9999] bg-white rounded-2xl shadow-2xl overflow-hidden md:w-full md:max-w-lg md:max-h-[90vh] flex flex-col">
-        {/* 關閉按鈕 */}
+        {/* 關閉按鈕 - 行動端增大觸控區域 */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center transition-colors"
+          className="absolute top-3 right-3 z-10 w-10 h-10 md:w-8 md:h-8 bg-black/40 hover:bg-black/60 active:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+          aria-label="關閉詳情視窗"
         >
-          <X size={18} />
+          <X size={22} className="md:w-[18px] md:h-[18px]" />
         </button>
 
         {/* 照片區域 */}
@@ -234,13 +238,14 @@ export const SpotDetailModal: React.FC<SpotDetailModalProps> = memo(({ spot, isO
           </div>
         </div>
 
-        {/* 底部操作 */}
-        <div className="p-4 border-t border-gray-100">
+        {/* 底部操作 - 行動端優化 */}
+        <div className="p-4 border-t border-gray-100 pb-safe">
           <button
             onClick={openInGoogleMaps}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sakura-500 hover:bg-sakura-600 text-white rounded-xl font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3.5 md:py-3 bg-sakura-500 hover:bg-sakura-600 active:bg-sakura-700 active:scale-[0.98] text-white rounded-xl font-medium transition-all min-h-[48px]"
+            aria-label="在 Google Maps 中開啟此景點"
           >
-            <ExternalLink size={18} />
+            <ExternalLink size={20} className="md:w-[18px] md:h-[18px]" />
             在 Google Maps 中開啟
           </button>
         </div>

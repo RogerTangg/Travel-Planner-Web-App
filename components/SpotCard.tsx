@@ -398,13 +398,13 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
       `}
       onClick={() => onClick(spot)}
     >
-      <div className="px-3 py-2 flex items-start gap-3">
+      <div className="px-3 py-2.5 md:py-2 flex items-start gap-3">
         {/* Time Column (Only in Timeline) - Compact Design */}
         {!compact && (
           <div className="flex items-center gap-1 flex-shrink-0 mt-2.5">
-            {/* Drag Handle */}
-            <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mr-1">
-              <GripVertical size={14} />
+            {/* Drag Handle - 行動端放大觸控區域 */}
+            <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mr-1 p-1 md:p-0">
+              <GripVertical size={16} className="md:w-[14px] md:h-[14px]" />
             </div>
 
             {/* Start Time */}
@@ -432,7 +432,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
           <div className="flex flex-row gap-3 items-start">
             {/* 景點照片縮圖 (Spot Photo Thumbnail) */}
             {spot.photos && spot.photos.length > 0 && (
-              <div className={`flex-shrink-0 ${compact ? 'w-12 h-12' : 'w-14 h-14'} rounded-lg overflow-hidden shadow-sm`}>
+              <div className={`flex-shrink-0 ${compact ? 'w-14 h-14 md:w-12 md:h-12' : 'w-16 h-16 md:w-14 md:h-14'} rounded-lg overflow-hidden shadow-sm`}>
                 <SpotPhotoGallery
                   photos={spot.photos}
                   spotName={spot.name}
@@ -456,7 +456,7 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
               </div>
 
               {/* Description - Single Line */}
-              <p className="text-[11px] text-gray-500 line-clamp-1 leading-relaxed mt-1.5">
+              <p className="text-xs md:text-[11px] text-gray-500 line-clamp-1 leading-relaxed mt-1.5">
                 {spot.description}
               </p>
 
@@ -474,23 +474,23 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
 
           {/* Tags */}
           {spot.tags && spot.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-gray-50">
+            <div className="flex flex-wrap gap-1.5 md:gap-1 mt-2 pt-2 border-t border-gray-50">
               {spot.tags.map(tag => (
                 <span
                   key={tag}
-                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${getTagColor(tag)}`}
+                  className={`inline-flex items-center px-2 md:px-1.5 py-1 md:py-0.5 rounded text-[10px] md:text-[9px] font-medium ${getTagColor(tag)}`}
                 >
-                  <Tag size={8} className="mr-0.5" />
+                  <Tag size={9} className="mr-0.5" />
                   {tag}
                 </span>
               ))}
             </div>
           )}
 
-          {/* Actions/Footer */}
+          {/* Actions/Footer - 行動端始終顯示 */}
           <div className="mt-2 flex items-center justify-end">
-            {/* Action Buttons */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Action Buttons - 行動端始終可見，桌面版 hover 顯示 */}
+            <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               {/* 查看詳情按鈕 */}
               <button
                 onClick={(e) => {
@@ -498,10 +498,11 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
                   useUIStore.getState().openSpotDetailModal(spot);
                 }}
                 onPointerDown={stopPropagation}
-                className="p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 rounded-md transition-colors cursor-pointer"
+                className="p-2.5 md:p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 active:bg-sakura-100 rounded-lg md:rounded-md transition-colors cursor-pointer"
                 title="查看詳情"
+                aria-label="查看詳情"
               >
-                <Eye size={13} />
+                <Eye size={16} className="md:w-[13px] md:h-[13px]" />
               </button>
               {onDuplicate && (
                 <button
@@ -510,10 +511,11 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
                     onDuplicate(spot);
                   }}
                   onPointerDown={stopPropagation}
-                  className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
+                  className="p-2.5 md:p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 active:bg-blue-100 rounded-lg md:rounded-md transition-colors cursor-pointer"
                   title="複製景點"
+                  aria-label="複製景點"
                 >
-                  <Copy size={13} />
+                  <Copy size={16} className="md:w-[13px] md:h-[13px]" />
                 </button>
               )}
               <button
@@ -522,10 +524,11 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
                   setIsEditing(true);
                 }}
                 onPointerDown={stopPropagation}
-                className="p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+                className="p-2.5 md:p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-gray-50 active:bg-gray-100 rounded-lg md:rounded-md transition-colors cursor-pointer"
                 title="編輯景點"
+                aria-label="編輯景點"
               >
-                <Edit3 size={13} />
+                <Edit3 size={16} className="md:w-[13px] md:h-[13px]" />
               </button>
               <button
                 onClick={(e) => {
@@ -533,10 +536,11 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
                   onDelete(spot.id);
                 }}
                 onPointerDown={stopPropagation}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                className="p-2.5 md:p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 rounded-lg md:rounded-md transition-colors cursor-pointer"
                 title="刪除"
+                aria-label="刪除景點"
               >
-                <Trash2 size={13} />
+                <Trash2 size={16} className="md:w-[13px] md:h-[13px]" />
               </button>
             </div>
           </div>

@@ -127,10 +127,21 @@
     @apply bg-gray-300;
   }
 
+  /* 手機版隱藏滾動條 */
+  @media (max-width: 768px) {
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 0;
+      display: none;
+    }
+  }
+
   /* 按鈕基礎樣式 (Button Base) */
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg font-medium transition-all;
     @apply active:scale-95 cursor-pointer;
+    /* 行動端優化：最小觸控區域 44x44px (WCAG 2.1 AA) */
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .btn-primary {
@@ -145,10 +156,32 @@
     @apply bg-red-50 text-red-600 border border-red-200 hover:bg-red-100;
   }
 
+  /* 小型按鈕 - 行動端自動放大觸控區域 */
+  .btn-sm {
+    @apply px-2 py-1 text-xs;
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  @media (max-width: 768px) {
+    .btn-sm {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
   /* 輸入框基礎樣式 (Input Base) */
   .input {
     @apply w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm;
     @apply focus:bg-white focus:ring-2 focus:ring-sakura-200 focus:border-sakura-300 outline-none transition-all;
+    /* 行動端優化：防止 iOS 自動縮放 */
+    font-size: 16px;
+  }
+
+  @media (min-width: 768px) {
+    .input {
+      font-size: 14px;
+    }
   }
 
   /* 卡片基礎樣式 (Card Base) */
@@ -166,21 +199,76 @@
     @apply flex flex-col h-full;
   }
 
-  /* 手機底部導航列 (Mobile Bottom Nav) */
+  /* 手機底部導航列 (Mobile Bottom Nav) - 優化觸控體驗 */
   .mobile-nav {
-    @apply fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200;
+    @apply fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200;
     @apply flex items-center justify-around py-2 px-4;
     @apply md:hidden;
     padding-bottom: env(safe-area-inset-bottom, 8px);
+    /* 增加陰影提升層次感 */
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
   }
 
   .mobile-nav-item {
     @apply flex flex-col items-center gap-0.5 text-gray-500;
-    @apply transition-colors active:scale-95 cursor-pointer;
+    @apply transition-colors cursor-pointer;
+    /* 確保足夠的觸控區域 */
+    padding: 8px 16px;
+    min-width: 64px;
+    border-radius: 12px;
+  }
+
+  .mobile-nav-item:active {
+    @apply bg-gray-100;
+    transform: scale(0.95);
   }
 
   .mobile-nav-item.active {
-    @apply text-sakura-500;
+    @apply text-sakura-500 bg-sakura-50;
+  }
+
+  /* 可觸控項目基礎樣式 */
+  .touchable {
+    @apply transition-all;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .touchable:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  /* 手機版拖曳手柄放大 */
+  .drag-handle {
+    @apply flex items-center justify-center text-gray-400 cursor-grab;
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .drag-handle {
+      min-width: 32px;
+      min-height: 32px;
+      padding: 4px;
+    }
+  }
+
+  /* 快速動作按鈕列 - 滑動友善 */
+  .quick-actions {
+    @apply flex gap-1 overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .quick-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quick-actions > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
   }
 }
 

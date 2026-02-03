@@ -5,7 +5,7 @@
  * - 應用程式標題
  * - 行程選擇器
  * - 景點搜尋/新增
- * - 工具列（Undo、匯出/匯入、建立集合）
+ * - 工具列（匯出/匯入）
  * - 快速模組
  * - 標籤篩選
  * - 待安排景點清單
@@ -27,15 +27,13 @@ import {
   PenLine,
   X,
   Download,
-  FolderInput,
-  Layers
+  FolderInput
 } from 'lucide-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useTripStore, useUIStore } from '../../stores';
 import { useSpotActions, useHistory, useExportImport } from '../../hooks';
 import { SpotCategory } from '../../types';
 import { SpotCard } from '../SpotCard';
-import { SpotGroupCard } from '../SpotGroupCard';
 import { DroppableContainer, LoadingOverlay, EmptyState } from '../common';
 
 // 常數
@@ -315,39 +313,29 @@ SpotSearchInput.displayName = 'SpotSearchInput';
 
 /**
  * 快速模組子元件 (Quick Modules)
- * 包含各類景點快捷按鈕及「集合」按鈕
+ * 包含各類景點快捷按鈕 - 行動端優化版
  */
 const QuickModules: React.FC = memo(() => {
-  const { handleAddQuickModule, handleAddEmptyGroup } = useSpotActions();
+  const { handleAddQuickModule } = useSpotActions();
 
   return (
-    <div className="mb-2 p-1.5 bg-gray-50 rounded-lg">
-      <div className="flex items-center gap-1 mb-1">
-        <Sparkles size={10} className="text-sakura-400" />
-        <span className="text-[9px] font-medium text-gray-500">快速新增模組</span>
+    <div className="mb-2 p-2 md:p-1.5 bg-gray-50 rounded-lg">
+      <div className="flex items-center gap-1 mb-1.5 md:mb-1">
+        <Sparkles size={12} className="text-sakura-400" />
+        <span className="text-[10px] md:text-[9px] font-medium text-gray-500">快速新增模組</span>
       </div>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1.5 md:gap-1">
         {QUICK_MODULES.map(module => (
           <button
             key={module.label}
             type="button"
             onClick={() => handleAddQuickModule(module.category, module.label)}
-            className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white rounded border border-gray-200 text-[10px] font-medium text-gray-600 hover:border-sakura-300 hover:bg-sakura-50 hover:text-sakura-600 transition-all shadow-sm"
+            className="flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 bg-white rounded-lg md:rounded border border-gray-200 text-xs md:text-[10px] font-medium text-gray-600 hover:border-sakura-300 hover:bg-sakura-50 hover:text-sakura-600 active:scale-95 transition-all shadow-sm"
           >
-            <span className="text-[10px]">{module.icon}</span>
+            <span className="text-sm md:text-[10px]">{module.icon}</span>
             <span>{module.label}</span>
           </button>
         ))}
-        {/* 集合按鈕 */}
-        <button
-          type="button"
-          onClick={handleAddEmptyGroup}
-          className="flex items-center gap-0.5 px-1.5 py-0.5 bg-white rounded border border-purple-200 text-[10px] font-medium text-purple-600 hover:border-purple-400 hover:bg-purple-50 transition-all shadow-sm"
-          title="新增空集合，可拖曳景點至其中"
-        >
-          <Layers size={10} />
-          <span>集合</span>
-        </button>
       </div>
     </div>
   );
@@ -458,7 +446,6 @@ const UnscheduledSpotsList: React.FC = memo(() => {
   const currentTripId = useTripStore(state => state.currentTripId);
   const currentTrip = trips.find(t => t.id === currentTripId) || null;
   const clearUnscheduledSpots = useTripStore(state => state.clearUnscheduledSpots);
-  const getGroupSpots = useTripStore(state => state.getGroupSpots);
   const selectedTagFilter = useUIStore(state => state.selectedTagFilter);
   const isScheduling = useUIStore(state => state.isScheduling);
   const activeId = useUIStore(state => state.activeId);
@@ -475,35 +462,13 @@ const UnscheduledSpotsList: React.FC = memo(() => {
 
   if (!currentTrip) return null;
 
-  // 取得已在集合中的景點 ID
-  const groupedSpotIds = useMemo(() => {
-    return new Set((currentTrip.spotGroups || []).flatMap(g => g.spotIds));
-  }, [currentTrip.spotGroups]);
-
-  // 根據標籤篩選景點（排除已在集合中的）
+  // 根據標籤篩選景點
   const filteredSpots = useMemo(() => {
-    const ungroupedSpots = currentTrip.unscheduledSpots.filter(
-      spot => !groupedSpotIds.has(spot.id)
-    );
-    
-    if (!selectedTagFilter) return ungroupedSpots;
-    return ungroupedSpots.filter(
+    if (!selectedTagFilter) return currentTrip.unscheduledSpots;
+    return currentTrip.unscheduledSpots.filter(
       spot => (spot.tags || []).includes(selectedTagFilter)
     );
-  }, [currentTrip.unscheduledSpots, selectedTagFilter, groupedSpotIds]);
-
-  // 取得待安排區域的集合
-  // 空集合或集合內有任何景點在待安排區域時，都應該顯示
-  const unscheduledGroups = useMemo(() => {
-    return (currentTrip.spotGroups || []).filter(group => {
-      // 空集合應該顯示在待安排區域（讓使用者可以拖曳景點進去）
-      if (group.spotIds.length === 0) return true;
-      // 集合內有任何景點在待安排區域
-      return group.spotIds.some(id => 
-        currentTrip.unscheduledSpots.some(s => s.id === id)
-      );
-    });
-  }, [currentTrip.spotGroups, currentTrip.unscheduledSpots]);
+  }, [currentTrip.unscheduledSpots, selectedTagFilter]);
 
   const handleClearAll = () => {
     if (currentTrip.unscheduledSpots.length === 0) return;
@@ -567,33 +532,13 @@ const UnscheduledSpotsList: React.FC = memo(() => {
         )}
       </div>
       
-      {/* 景點集合列表 */}
-      {unscheduledGroups.map(group => {
-        const groupSpots = currentTrip.unscheduledSpots.filter(
-          s => group.spotIds.includes(s.id)
-        );
-        return (
-          <SpotGroupCard
-            key={group.id}
-            group={group}
-            spots={groupSpots}
-            onDeleteSpot={handleDeleteSpotWithHistory}
-            onUpdateSpot={handleUpdateSpot}
-            onDuplicateSpot={handleDuplicateSpot}
-          />
-        );
-      })}
-      
-      {/* 未分組景點列表 */}
+      {/* 景點列表 */}
       <SortableContext 
         id={UNSCHEDULED_ID}
-        items={[
-          ...unscheduledGroups.map(g => `sortable-group-${g.id}`),
-          ...filteredSpots.map(s => s.id)
-        ]}
+        items={filteredSpots.map(s => s.id)}
         strategy={verticalListSortingStrategy}
       >
-        {filteredSpots.length === 0 && unscheduledGroups.length === 0 ? (
+        {filteredSpots.length === 0 ? (
           <EmptyState 
             variant={currentTrip.unscheduledSpots.length === 0 ? 'unscheduled' : 'filtered'} 
           />
@@ -631,39 +576,41 @@ export const Sidebar: React.FC = () => {
 
   return (
     <div className="w-full md:w-[320px] lg:w-[340px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] h-full">
-      {/* 標題區塊 */}
-      <div className="p-4 md:p-5 border-b border-gray-100 bg-white">
+      {/* 標題區塊 - 行動端優化間距 */}
+      <div className="p-4 md:p-5 border-b border-gray-100 bg-white flex-shrink-0">
         <div className="flex items-center justify-between mb-3 md:mb-4">
           <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Logo" className="w-6 h-6 md:w-7 md:h-7" />
-            <h1 className="font-bold text-base md:text-lg text-gray-800">Travel Planner</h1>
+            <img src="/logo.svg" alt="Logo" className="w-7 h-7 md:w-7 md:h-7" />
+            <h1 className="font-bold text-lg md:text-lg text-gray-800">Travel Planner</h1>
           </div>
         </div>
 
         <TripSelector />
 
-        {/* 行程名稱輸入 */}
+        {/* 行程名稱輸入 - 行動端使用 16px 防止自動縮放 */}
         <input 
           type="text" 
           value={currentTrip.title} 
           onChange={(e) => updateTrip(currentTrip.id, { title: e.target.value })}
-          className="w-full text-sm md:text-base font-bold text-gray-800 bg-gray-50 px-3 py-2 rounded-lg border-transparent focus:bg-white focus:ring-2 focus:ring-sakura-200 transition-all outline-none" 
+          className="w-full text-base font-bold text-gray-800 bg-gray-50 px-3 py-2.5 md:py-2 rounded-lg border-transparent focus:bg-white focus:ring-2 focus:ring-sakura-200 transition-all outline-none" 
         />
         
-        {/* 天數控制 */}
-        <div className="flex items-center justify-between mt-3 bg-gray-50 p-2 rounded-lg">
+        {/* 天數控制 - 更大的觸控區域 */}
+        <div className="flex items-center justify-between mt-3 bg-gray-50 p-2.5 md:p-2 rounded-lg">
           <span className="text-xs font-medium text-gray-500 ml-1">旅遊天數</span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 md:gap-2">
             <button 
               onClick={() => updateDayCount(currentTrip.dayCount - 1)} 
-              className="w-7 h-7 md:w-6 md:h-6 rounded hover:bg-white text-gray-500 shadow-sm active:scale-95 transition-transform"
+              className="w-9 h-9 md:w-6 md:h-6 rounded-lg md:rounded flex items-center justify-center bg-white hover:bg-gray-100 text-gray-500 shadow-sm active:scale-95 transition-transform font-medium text-lg md:text-base"
+              aria-label="減少天數"
             >
-              -
+              −
             </button>
-            <span className="text-sm font-bold w-4 text-center">{currentTrip.dayCount}</span>
+            <span className="text-base md:text-sm font-bold w-6 md:w-4 text-center">{currentTrip.dayCount}</span>
             <button 
               onClick={() => updateDayCount(currentTrip.dayCount + 1)} 
-              className="w-7 h-7 md:w-6 md:h-6 rounded hover:bg-white text-gray-500 shadow-sm active:scale-95 transition-transform"
+              className="w-9 h-9 md:w-6 md:h-6 rounded-lg md:rounded flex items-center justify-center bg-white hover:bg-gray-100 text-gray-500 shadow-sm active:scale-95 transition-transform font-medium text-lg md:text-base"
+              aria-label="增加天數"
             >
               +
             </button>
@@ -672,15 +619,15 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* 搜尋與工具區塊 */}
-      <div className="p-3 border-b border-gray-100">
+      <div className="p-3 border-b border-gray-100 flex-shrink-0">
         <SpotSearchInput />
         <Toolbar />
         <QuickModules />
         <TagFilter />
       </div>
 
-      {/* 待安排景點清單 - 手機版需要留底部空間給導航 */}
-      <div className="flex-1 flex flex-col min-h-0 pb-16 md:pb-0">
+      {/* 待安排景點清單 */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <UnscheduledSpotsList />
       </div>
     </div>

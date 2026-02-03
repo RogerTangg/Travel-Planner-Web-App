@@ -146,6 +146,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
 
 /**
  * 手機底部導航列 (Mobile Bottom Navigation)
+ * 優化觸控體驗和視覺回饋
  */
 type MobileView = 'spots' | 'schedule' | 'map';
 
@@ -160,15 +161,17 @@ const MobileNavigation: React.FC<{
   ];
 
   return (
-    <nav className="mobile-nav">
+    <nav className="mobile-nav" role="navigation" aria-label="主要導航">
       {navItems.map(({ view, label, Icon }) => (
         <button
           key={view}
           onClick={() => onViewChange(view)}
           className={`mobile-nav-item ${activeView === view ? 'active' : ''}`}
+          aria-label={label}
+          aria-current={activeView === view ? 'page' : undefined}
         >
-          <Icon size={20} />
-          <span className="text-[10px] font-medium">{label}</span>
+          <Icon size={22} strokeWidth={activeView === view ? 2.5 : 2} />
+          <span className="text-[11px] font-semibold">{label}</span>
         </button>
       ))}
     </nav>
@@ -212,7 +215,7 @@ const AppContent: React.FC = memo(() => {
   }
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 text-warm-800 font-sans overflow-hidden pb-14 md:pb-0">
+    <div className="flex h-screen w-full bg-gray-50 text-warm-800 font-sans overflow-hidden pb-[60px] md:pb-0">
       <DndContext 
         sensors={sensors}
         collisionDetection={pointerWithin} 
@@ -229,6 +232,7 @@ const AppContent: React.FC = memo(() => {
           md:flex
           w-full md:w-[320px] lg:w-[340px]
           flex-shrink-0
+          h-full
         `}>
           <Sidebar />
         </div>
@@ -238,6 +242,7 @@ const AppContent: React.FC = memo(() => {
           ${mobileView === 'schedule' ? 'flex' : 'hidden'}
           md:flex
           flex-1 min-w-0
+          h-full
         `}>
           <SchedulePanel />
         </div>
@@ -247,6 +252,7 @@ const AppContent: React.FC = memo(() => {
           ${mobileView === 'map' ? 'flex' : 'hidden'}
           xl:flex
           w-full xl:w-[38%]
+          h-full
         `}>
           <MapPanel />
         </div>
