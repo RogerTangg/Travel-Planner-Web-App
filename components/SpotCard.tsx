@@ -392,19 +392,19 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
       style={style}
       {...attributes}
       {...listeners}
-      className={`group relative bg-white rounded-lg border transition-all duration-200 mb-2 overflow-hidden select-none touch-none
+      className={`group relative bg-white rounded-2xl md:rounded-lg border transition-all duration-200 mb-4 md:mb-2 overflow-hidden select-none touch-none
         ${isOverlay ? 'shadow-2xl ring-2 ring-sakura-300 rotate-2 cursor-grabbing z-50' : 'shadow-sm hover:shadow-md border-gray-100 hover:border-sakura-200 cursor-grab active:cursor-grabbing'}
         ${spot.isManual ? 'border-l-4 border-l-amber-400' : ''}
       `}
       onClick={() => onClick(spot)}
     >
-      <div className="px-3 py-2.5 md:py-2 flex items-start gap-3">
+      <div className="px-4 py-4 md:px-3 md:py-2.5 flex items-start gap-4 md:gap-3">
         {/* Time Column (Only in Timeline) - Compact Design */}
         {!compact && (
-          <div className="flex items-center gap-1 flex-shrink-0 mt-2.5">
+          <div className="flex items-center gap-2 md:gap-1 flex-shrink-0 mt-3 md:mt-2.5">
             {/* Drag Handle - 行動端放大觸控區域 */}
-            <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mr-1 p-1 md:p-0">
-              <GripVertical size={16} className="md:w-[14px] md:h-[14px]" />
+            <div className="text-gray-300 group-hover:text-gray-400 transition-colors cursor-grab mr-2 md:mr-1 p-2 md:p-0 rounded-xl md:rounded bg-gray-50 md:bg-transparent">
+              <GripVertical size={20} className="md:w-[14px] md:h-[14px]" />
             </div>
 
             {/* Start Time */}
@@ -429,10 +429,10 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
         {/* Main Content */}
         <div className="flex-1 min-w-0">
           {/* Header with Photo - 根據 compact 模式調整布局 */}
-          <div className="flex flex-row gap-3 items-start">
+          <div className="flex flex-row gap-4 md:gap-3 items-start">
             {/* 景點照片縮圖 (Spot Photo Thumbnail) */}
             {spot.photos && spot.photos.length > 0 && (
-              <div className={`flex-shrink-0 ${compact ? 'w-14 h-14 md:w-12 md:h-12' : 'w-16 h-16 md:w-14 md:h-14'} rounded-lg overflow-hidden shadow-sm`}>
+              <div className={`flex-shrink-0 ${compact ? 'w-16 h-16 md:w-12 md:h-12' : 'w-20 h-20 md:w-14 md:h-14'} rounded-xl md:rounded-lg overflow-hidden shadow-sm`}>
                 <SpotPhotoGallery
                   photos={spot.photos}
                   spotName={spot.name}
@@ -443,28 +443,28 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
             )}
             
             {/* 標題與資訊區塊 */}
-            <div className="flex-1 min-w-0 pt-0.5">
+            <div className="flex-1 min-w-0 pt-1 md:pt-0.5">
               {/* Header */}
               <div className="flex justify-between items-start gap-2">
-                <h4 className="font-bold text-gray-800 text-sm leading-tight">
-                  <span className="line-clamp-1">{spot.name}</span>
-                  {spot.isManual && <span className="ml-1 text-[10px] text-amber-500 font-medium">(手動)</span>}
+                <h4 className="font-bold text-gray-800 text-base md:text-sm leading-tight">
+                  <span className="line-clamp-2 md:line-clamp-1">{spot.name}</span>
+                  {spot.isManual && <span className="ml-1 text-xs md:text-[10px] text-amber-500 font-medium">(手動)</span>}
                 </h4>
-                <span className={`flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-md border flex items-center gap-0.5 font-medium ${getCategoryColor(spot.category)}`}>
+                <span className={`flex-shrink-0 text-xs md:text-[10px] px-2 md:px-1.5 py-1 md:py-0.5 rounded-lg md:rounded-md border flex items-center gap-1 md:gap-0.5 font-medium ${getCategoryColor(spot.category)}`}>
                   {getIcon(spot.category)}
                 </span>
               </div>
 
               {/* Description - Single Line */}
-              <p className="text-xs md:text-[11px] text-gray-500 line-clamp-1 leading-relaxed mt-1.5">
+              <p className="text-sm md:text-[11px] text-gray-500 line-clamp-2 md:line-clamp-1 leading-relaxed mt-2 md:mt-1.5">
                 {spot.description}
               </p>
 
               {/* Address */}
               {spot.address && (
-                <div className="flex items-center gap-1 mt-1">
-                  <Navigation size={10} className="text-gray-400 flex-shrink-0" />
-                  <p className="text-[10px] text-gray-400 line-clamp-1">
+                <div className="flex items-center gap-1.5 md:gap-1 mt-2 md:mt-1">
+                  <Navigation size={12} className="md:w-[10px] md:h-[10px] text-gray-400 flex-shrink-0" />
+                  <p className="text-xs md:text-[10px] text-gray-400 line-clamp-1">
                     {spot.address}
                   </p>
                 </div>
@@ -474,13 +474,13 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
 
           {/* Tags */}
           {spot.tags && spot.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 md:gap-1 mt-2 pt-2 border-t border-gray-50">
+            <div className="flex flex-wrap gap-2 md:gap-1 mt-3 md:mt-2 pt-3 md:pt-2 border-t border-gray-50">
               {spot.tags.map(tag => (
                 <span
                   key={tag}
-                  className={`inline-flex items-center px-2 md:px-1.5 py-1 md:py-0.5 rounded text-[10px] md:text-[9px] font-medium ${getTagColor(tag)}`}
+                  className={`inline-flex items-center px-2.5 md:px-1.5 py-1.5 md:py-0.5 rounded-lg md:rounded text-xs md:text-[9px] font-medium ${getTagColor(tag)}`}
                 >
-                  <Tag size={9} className="mr-0.5" />
+                  <Tag size={10} className="md:w-[9px] md:h-[9px] mr-1 md:mr-0.5" />
                   {tag}
                 </span>
               ))}
@@ -488,9 +488,9 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
           )}
 
           {/* Actions/Footer - 行動端始終顯示 */}
-          <div className="mt-2 flex items-center justify-end">
+          <div className="mt-3 md:mt-2 flex items-center justify-end">
             {/* Action Buttons - 行動端始終可見，桌面版 hover 顯示 */}
-            <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 md:gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               {/* 查看詳情按鈕 */}
               <button
                 onClick={(e) => {
@@ -498,11 +498,11 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
                   useUIStore.getState().openSpotDetailModal(spot);
                 }}
                 onPointerDown={stopPropagation}
-                className="p-2.5 md:p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 active:bg-sakura-100 rounded-lg md:rounded-md transition-colors cursor-pointer"
+                className="p-3 md:p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-sakura-50 active:bg-sakura-100 rounded-xl md:rounded-md transition-colors cursor-pointer"
                 title="查看詳情"
                 aria-label="查看詳情"
               >
-                <Eye size={16} className="md:w-[13px] md:h-[13px]" />
+                <Eye size={18} className="md:w-[13px] md:h-[13px]" />
               </button>
               {onDuplicate && (
                 <button
@@ -511,11 +511,11 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
                     onDuplicate(spot);
                   }}
                   onPointerDown={stopPropagation}
-                  className="p-2.5 md:p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 active:bg-blue-100 rounded-lg md:rounded-md transition-colors cursor-pointer"
+                  className="p-3 md:p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 active:bg-blue-100 rounded-xl md:rounded-md transition-colors cursor-pointer"
                   title="複製景點"
                   aria-label="複製景點"
                 >
-                  <Copy size={16} className="md:w-[13px] md:h-[13px]" />
+                  <Copy size={18} className="md:w-[13px] md:h-[13px]" />
                 </button>
               )}
               <button
@@ -524,11 +524,11 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
                   setIsEditing(true);
                 }}
                 onPointerDown={stopPropagation}
-                className="p-2.5 md:p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-gray-50 active:bg-gray-100 rounded-lg md:rounded-md transition-colors cursor-pointer"
+                className="p-3 md:p-1.5 text-gray-400 hover:text-sakura-500 hover:bg-gray-50 active:bg-gray-100 rounded-xl md:rounded-md transition-colors cursor-pointer"
                 title="編輯景點"
                 aria-label="編輯景點"
               >
-                <Edit3 size={16} className="md:w-[13px] md:h-[13px]" />
+                <Edit3 size={18} className="md:w-[13px] md:h-[13px]" />
               </button>
               <button
                 onClick={(e) => {
@@ -536,11 +536,11 @@ export const SpotCard: React.FC<SpotCardProps> = memo(({ spot, onDelete, onClick
                   onDelete(spot.id);
                 }}
                 onPointerDown={stopPropagation}
-                className="p-2.5 md:p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 rounded-lg md:rounded-md transition-colors cursor-pointer"
+                className="p-3 md:p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 rounded-xl md:rounded-md transition-colors cursor-pointer"
                 title="刪除"
                 aria-label="刪除景點"
               >
-                <Trash2 size={16} className="md:w-[13px] md:h-[13px]" />
+                <Trash2 size={18} className="md:w-[13px] md:h-[13px]" />
               </button>
             </div>
           </div>

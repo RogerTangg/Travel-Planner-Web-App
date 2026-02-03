@@ -229,40 +229,40 @@ const SpotSearchInput: React.FC = memo(() => {
   };
 
   return (
-    <form onSubmit={onSubmit} className="relative mb-2">
+    <form onSubmit={onSubmit} className="relative mb-3 md:mb-2">
       {/* 主輸入框 */}
-      <div className="relative mb-1.5">
+      <div className="relative mb-2.5 md:mb-1.5">
         <input 
           type="text" 
           placeholder={isManualMode ? "手動輸入景點名稱..." : "輸入景點名稱 (AI 智慧分析)..."} 
           value={newSpotName}
           onChange={(e) => setNewSpotName(e.target.value)}
-          className={`w-full pl-10 pr-4 py-3 bg-gray-50 border-2 rounded-xl text-sm focus:bg-white focus:ring-2 outline-none transition-all ${
+          className={`w-full pl-12 md:pl-10 pr-4 py-4 md:py-3 bg-gray-50 border-2 rounded-2xl md:rounded-xl text-base md:text-sm focus:bg-white focus:ring-2 outline-none transition-all ${
             isManualMode 
               ? 'border-amber-300 focus:ring-amber-200 focus:border-amber-400' 
               : 'border-gray-200 focus:ring-sakura-200 focus:border-sakura-300'
           }`}
         />
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        <Search className="absolute left-4 md:left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
       </div>
       
       {/* 操作按鈕列 */}
-      <div className="flex gap-1.5">
+      <div className="flex gap-2 md:gap-1.5">
         <button 
           type="submit"
           disabled={!newSpotName.trim() || (isAnalyzing && !isManualMode)}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg shadow-sm hover:shadow-md border-2 disabled:opacity-50 font-medium transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 md:gap-1.5 py-3 md:py-2 rounded-xl md:rounded-lg shadow-sm hover:shadow-md border-2 disabled:opacity-50 font-semibold text-base md:text-sm transition-all active:scale-95 ${
             isManualMode 
               ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100' 
               : 'bg-sakura-50 text-sakura-600 border-sakura-200 hover:bg-sakura-100'
           }`}
         >
           {isAnalyzing && newSpotName && !isManualMode ? (
-            <div className="animate-spin h-3.5 w-3.5 border-2 border-sakura-500 border-t-transparent rounded-full"/>
+            <div className="animate-spin h-4 w-4 md:h-3.5 md:w-3.5 border-2 border-sakura-500 border-t-transparent rounded-full"/>
           ) : (
             <>
-              <Plus size={14} />
-              <span className="text-xs">新增景點</span>
+              <Plus size={18} className="md:w-[14px] md:h-[14px]" />
+              <span>新增景點</span>
             </>
           )}
         </button>
@@ -272,13 +272,13 @@ const SpotSearchInput: React.FC = memo(() => {
           type="button"
           onClick={toggleManualMode}
           title={isManualMode ? "切換為 AI 模式" : "切換為手動模式"}
-          className={`px-2.5 py-2 rounded-lg shadow-sm hover:shadow border-2 transition-all ${
+          className={`px-4 md:px-2.5 py-3 md:py-2 rounded-xl md:rounded-lg shadow-sm hover:shadow border-2 transition-all active:scale-95 ${
             isManualMode 
               ? 'bg-amber-100 text-amber-600 border-amber-300' 
               : 'bg-white text-gray-400 hover:text-amber-500 border-gray-200 hover:border-amber-200'
           }`}
         >
-          <PenLine size={16} />
+          <PenLine size={20} className="md:w-[16px] md:h-[16px]" />
         </button>
 
         {/* 檔案上傳 */}
@@ -295,12 +295,12 @@ const SpotSearchInput: React.FC = memo(() => {
             onClick={() => fileInputRef.current?.click()}
             disabled={isAnalyzing}
             title="上傳行程文字檔"
-            className="px-2.5 py-2 bg-white text-gray-500 hover:text-sakura-500 rounded-lg shadow-sm hover:shadow border-2 border-gray-200 hover:border-sakura-200 disabled:opacity-50 transition-all"
+            className="px-4 md:px-2.5 py-3 md:py-2 bg-white text-gray-500 hover:text-sakura-500 rounded-xl md:rounded-lg shadow-sm hover:shadow border-2 border-gray-200 hover:border-sakura-200 disabled:opacity-50 transition-all active:scale-95"
           >
             {isAnalyzing && !newSpotName ? (
-              <div className="animate-spin h-3.5 w-3.5 border-2 border-sakura-500 border-t-transparent rounded-full"/>
+              <div className="animate-spin h-5 w-5 md:h-3.5 md:w-3.5 border-2 border-sakura-500 border-t-transparent rounded-full"/>
             ) : (
-              <Upload size={16} />
+              <Upload size={20} className="md:w-[16px] md:h-[16px]" />
             )}
           </button>
         </div>
@@ -319,20 +319,20 @@ const QuickModules: React.FC = memo(() => {
   const { handleAddQuickModule } = useSpotActions();
 
   return (
-    <div className="mb-2 p-2 md:p-1.5 bg-gray-50 rounded-lg">
-      <div className="flex items-center gap-1 mb-1.5 md:mb-1">
-        <Sparkles size={12} className="text-sakura-400" />
-        <span className="text-[10px] md:text-[9px] font-medium text-gray-500">快速新增模組</span>
+    <div className="mb-3 md:mb-2 p-3 md:p-1.5 bg-gray-50 rounded-xl md:rounded-lg">
+      <div className="flex items-center gap-1.5 md:gap-1 mb-2.5 md:mb-1">
+        <Sparkles size={14} className="md:w-[12px] md:h-[12px] text-sakura-400" />
+        <span className="text-xs md:text-[9px] font-medium text-gray-500">快速新增模組</span>
       </div>
-      <div className="flex flex-wrap gap-1.5 md:gap-1">
+      <div className="flex flex-wrap gap-2 md:gap-1">
         {QUICK_MODULES.map(module => (
           <button
             key={module.label}
             type="button"
             onClick={() => handleAddQuickModule(module.category, module.label)}
-            className="flex items-center gap-1 px-2.5 py-1.5 md:px-1.5 md:py-0.5 bg-white rounded-lg md:rounded border border-gray-200 text-xs md:text-[10px] font-medium text-gray-600 hover:border-sakura-300 hover:bg-sakura-50 hover:text-sakura-600 active:scale-95 transition-all shadow-sm"
+            className="flex items-center gap-1.5 md:gap-1 px-3.5 py-2.5 md:px-1.5 md:py-0.5 bg-white rounded-xl md:rounded border border-gray-200 text-sm md:text-[10px] font-medium text-gray-600 hover:border-sakura-300 hover:bg-sakura-50 hover:text-sakura-600 active:scale-95 active:bg-sakura-100 transition-all shadow-sm"
           >
-            <span className="text-sm md:text-[10px]">{module.icon}</span>
+            <span className="text-base md:text-[10px]">{module.icon}</span>
             <span>{module.label}</span>
           </button>
         ))}
@@ -351,22 +351,22 @@ const Toolbar: React.FC = memo(() => {
   const { handleExportTrip, triggerImportDialog } = useExportImport();
 
   return (
-    <div className="flex items-center justify-center gap-1 mb-2 p-1.5 bg-gray-50 rounded-lg">
+    <div className="flex items-center justify-center gap-2 md:gap-1 mb-3 md:mb-2 p-2.5 md:p-1.5 bg-gray-50 rounded-xl md:rounded-lg">
       <button
         onClick={handleExportTrip}
         title="匯出行程 JSON"
-        className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-green-300 hover:text-green-600 transition-all shadow-sm"
+        className="flex items-center gap-1.5 md:gap-1 px-3 md:px-2 py-2.5 md:py-1.5 bg-white rounded-xl md:rounded border border-gray-200 text-sm md:text-xs font-medium text-gray-600 hover:border-green-300 hover:text-green-600 active:bg-green-50 active:scale-95 transition-all shadow-sm min-h-[44px] md:min-h-0"
       >
-        <Download size={12} />
-        <span className="hidden sm:inline">匯出</span>
+        <Download size={16} className="md:w-[12px] md:h-[12px]" />
+        <span>匯出</span>
       </button>
       <button
         onClick={triggerImportDialog}
         title="匯入行程 JSON"
-        className="flex items-center gap-1 px-2 py-1.5 bg-white rounded border border-gray-200 text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
+        className="flex items-center gap-1.5 md:gap-1 px-3 md:px-2 py-2.5 md:py-1.5 bg-white rounded-xl md:rounded border border-gray-200 text-sm md:text-xs font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 active:bg-blue-50 active:scale-95 transition-all shadow-sm min-h-[44px] md:min-h-0"
       >
-        <FolderInput size={12} />
-        <span className="hidden sm:inline">匯入</span>
+        <FolderInput size={16} className="md:w-[12px] md:h-[12px]" />
+        <span>匯入</span>
       </button>
     </div>
   );
@@ -403,18 +403,18 @@ const TagFilter: React.FC = memo(() => {
   if (allTags.length === 0) return null;
 
   return (
-    <div className="mb-3">
-      <div className="flex items-center gap-1 mb-2">
-        <Tag size={12} className="text-gray-400" />
-        <span className="text-[10px] font-medium text-gray-500">標籤篩選</span>
+    <div className="mb-4 md:mb-3">
+      <div className="flex items-center gap-1.5 md:gap-1 mb-2.5 md:mb-2">
+        <Tag size={14} className="md:w-[12px] md:h-[12px] text-gray-400" />
+        <span className="text-xs md:text-[10px] font-medium text-gray-500">標籤篩選</span>
       </div>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-2 md:gap-1">
         {selectedTagFilter && (
           <button
             onClick={() => setSelectedTagFilter(null)}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600 hover:bg-gray-200"
+            className="inline-flex items-center gap-1.5 md:gap-1 px-3 md:px-2 py-1.5 md:py-0.5 rounded-full text-xs md:text-[10px] font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all min-h-[36px] md:min-h-0"
           >
-            <X size={10} />
+            <X size={12} className="md:w-[10px] md:h-[10px]" />
             清除
           </button>
         )}
@@ -422,7 +422,7 @@ const TagFilter: React.FC = memo(() => {
           <button
             key={tag}
             onClick={() => setSelectedTagFilter(selectedTagFilter === tag ? null : tag)}
-            className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+            className={`px-3 md:px-2 py-1.5 md:py-0.5 rounded-full text-xs md:text-[10px] font-medium transition-all active:scale-95 min-h-[36px] md:min-h-0 ${
               selectedTagFilter === tag 
                 ? 'bg-sakura-500 text-white' 
                 : 'bg-gray-100 text-gray-600 hover:bg-sakura-100'
@@ -577,11 +577,11 @@ export const Sidebar: React.FC = () => {
   return (
     <div className="w-full md:w-[320px] lg:w-[340px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] h-full">
       {/* 標題區塊 - 行動端優化間距 */}
-      <div className="p-4 md:p-5 border-b border-gray-100 bg-white flex-shrink-0">
-        <div className="flex items-center justify-between mb-3 md:mb-4">
-          <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Logo" className="w-7 h-7 md:w-7 md:h-7" />
-            <h1 className="font-bold text-lg md:text-lg text-gray-800">Travel Planner</h1>
+      <div className="p-5 md:p-5 border-b border-gray-100 bg-white flex-shrink-0">
+        <div className="flex items-center justify-between mb-4 md:mb-4">
+          <div className="flex items-center gap-3 md:gap-2">
+            <img src="/logo.svg" alt="Logo" className="w-9 h-9 md:w-7 md:h-7" />
+            <h1 className="font-bold text-xl md:text-lg text-gray-800">Travel Planner</h1>
           </div>
         </div>
 
@@ -592,24 +592,24 @@ export const Sidebar: React.FC = () => {
           type="text" 
           value={currentTrip.title} 
           onChange={(e) => updateTrip(currentTrip.id, { title: e.target.value })}
-          className="w-full text-base font-bold text-gray-800 bg-gray-50 px-3 py-2.5 md:py-2 rounded-lg border-transparent focus:bg-white focus:ring-2 focus:ring-sakura-200 transition-all outline-none" 
+          className="w-full text-lg md:text-base font-bold text-gray-800 bg-gray-50 px-4 py-3.5 md:py-2 rounded-xl md:rounded-lg border-transparent focus:bg-white focus:ring-2 focus:ring-sakura-200 transition-all outline-none" 
         />
         
         {/* 天數控制 - 更大的觸控區域 */}
-        <div className="flex items-center justify-between mt-3 bg-gray-50 p-2.5 md:p-2 rounded-lg">
-          <span className="text-xs font-medium text-gray-500 ml-1">旅遊天數</span>
-          <div className="flex items-center gap-3 md:gap-2">
+        <div className="flex items-center justify-between mt-4 md:mt-3 bg-gray-50 p-3.5 md:p-2 rounded-xl md:rounded-lg">
+          <span className="text-sm md:text-xs font-medium text-gray-500 ml-1">旅遊天數</span>
+          <div className="flex items-center gap-4 md:gap-2">
             <button 
               onClick={() => updateDayCount(currentTrip.dayCount - 1)} 
-              className="w-9 h-9 md:w-6 md:h-6 rounded-lg md:rounded flex items-center justify-center bg-white hover:bg-gray-100 text-gray-500 shadow-sm active:scale-95 transition-transform font-medium text-lg md:text-base"
+              className="w-11 h-11 md:w-6 md:h-6 rounded-xl md:rounded flex items-center justify-center bg-white hover:bg-gray-100 active:bg-gray-200 text-gray-600 shadow-sm active:scale-90 transition-all font-semibold text-xl md:text-base"
               aria-label="減少天數"
             >
               −
             </button>
-            <span className="text-base md:text-sm font-bold w-6 md:w-4 text-center">{currentTrip.dayCount}</span>
+            <span className="text-xl md:text-sm font-bold w-8 md:w-4 text-center">{currentTrip.dayCount}</span>
             <button 
               onClick={() => updateDayCount(currentTrip.dayCount + 1)} 
-              className="w-9 h-9 md:w-6 md:h-6 rounded-lg md:rounded flex items-center justify-center bg-white hover:bg-gray-100 text-gray-500 shadow-sm active:scale-95 transition-transform font-medium text-lg md:text-base"
+              className="w-11 h-11 md:w-6 md:h-6 rounded-xl md:rounded flex items-center justify-center bg-white hover:bg-gray-100 active:bg-gray-200 text-gray-600 shadow-sm active:scale-90 transition-all font-semibold text-xl md:text-base"
               aria-label="增加天數"
             >
               +
@@ -618,8 +618,8 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* 搜尋與工具區塊 */}
-      <div className="p-3 border-b border-gray-100 flex-shrink-0">
+      {/* 搜尋與工具區塊 - 增加間距 */}
+      <div className="p-4 md:p-3 border-b border-gray-100 flex-shrink-0">
         <SpotSearchInput />
         <Toolbar />
         <QuickModules />

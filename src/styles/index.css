@@ -158,16 +158,40 @@
 
   /* 小型按鈕 - 行動端自動放大觸控區域 */
   .btn-sm {
-    @apply px-2 py-1 text-xs;
+    @apply px-2.5 py-1.5 text-xs;
     min-height: 36px;
     min-width: 36px;
   }
 
   @media (max-width: 768px) {
     .btn-sm {
-      min-height: 44px;
-      min-width: 44px;
+      min-height: 48px;
+      min-width: 48px;
+      @apply px-3 py-2 text-sm;
     }
+  }
+
+  /* 行動端卡片樣式優化 */
+  .mobile-card {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+    @apply p-4;
+    margin-bottom: 16px;
+  }
+
+  /* 行動端列表項目 - 增加間距與觸控區域 */
+  .mobile-list-item {
+    @apply py-4 px-3;
+    border-radius: 16px;
+    margin-bottom: 12px;
+  }
+
+  /* 行動端區塊間距 */
+  .mobile-section {
+    @apply mb-5;
+  }
+
+  .mobile-section-title {
+    @apply text-sm font-bold text-gray-700 mb-3;
   }
 
   /* 輸入框基礎樣式 (Input Base) */
@@ -201,30 +225,39 @@
 
   /* 手機底部導航列 (Mobile Bottom Nav) - 優化觸控體驗 */
   .mobile-nav {
-    @apply fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200;
-    @apply flex items-center justify-around py-2 px-4;
+    @apply fixed bottom-0 left-0 right-0 z-50 bg-white/98 backdrop-blur-lg border-t border-gray-100;
+    @apply flex items-center justify-around;
     @apply md:hidden;
-    padding-bottom: env(safe-area-inset-bottom, 8px);
-    /* 增加陰影提升層次感 */
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+    /* 增加高度和內距，提升觸控舒適度 */
+    padding: 12px 20px calc(env(safe-area-inset-bottom, 12px) + 8px);
+    /* 優化陰影層次感 */
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08);
   }
 
   .mobile-nav-item {
-    @apply flex flex-col items-center gap-0.5 text-gray-500;
-    @apply transition-colors cursor-pointer;
-    /* 確保足夠的觸控區域 */
-    padding: 8px 16px;
-    min-width: 64px;
-    border-radius: 12px;
+    @apply flex flex-col items-center justify-center text-gray-400;
+    @apply transition-all duration-200 cursor-pointer;
+    /* WCAG 2.1 AA 觸控區域標準：最小 48x48px */
+    padding: 10px 20px;
+    min-width: 72px;
+    min-height: 56px;
+    border-radius: 16px;
+    gap: 4px;
   }
 
   .mobile-nav-item:active {
     @apply bg-gray-100;
-    transform: scale(0.95);
+    transform: scale(0.92);
   }
 
   .mobile-nav-item.active {
-    @apply text-sakura-500 bg-sakura-50;
+    @apply text-sakura-600 bg-sakura-50;
+    /* 增加選中狀態的視覺權重 */
+    font-weight: 600;
+  }
+
+  .mobile-nav-item.active svg {
+    filter: drop-shadow(0 2px 4px rgba(255, 143, 171, 0.3));
   }
 
   /* 可觸控項目基礎樣式 */
@@ -247,10 +280,45 @@
 
   @media (max-width: 768px) {
     .drag-handle {
-      min-width: 32px;
-      min-height: 32px;
-      padding: 4px;
+      min-width: 40px;
+      min-height: 40px;
+      padding: 8px;
+      @apply rounded-xl bg-gray-50;
     }
+
+    .drag-handle:active {
+      @apply bg-gray-100;
+    }
+  }
+
+  /* 行動端表單元素優化 */
+  @media (max-width: 768px) {
+    /* 增加輸入框高度與內距 */
+    .input, input[type="text"], input[type="search"] {
+      min-height: 52px;
+      @apply py-3.5 px-4 text-base rounded-xl;
+    }
+
+    /* 增加下拉選單高度 */
+    select {
+      min-height: 52px;
+      @apply py-3 px-4 text-base rounded-xl;
+    }
+
+    /* 增加文字區域內距 */
+    textarea {
+      @apply py-3 px-4 text-base rounded-xl;
+    }
+  }
+
+  /* 行動端觸控回饋動畫 */
+  .touch-feedback {
+    @apply transition-transform duration-150;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .touch-feedback:active {
+    transform: scale(0.96);
   }
 
   /* 快速動作按鈕列 - 滑動友善 */

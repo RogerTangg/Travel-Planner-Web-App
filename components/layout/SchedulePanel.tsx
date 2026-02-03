@@ -64,21 +64,21 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
   };
 
   return (
-    <div className="relative pl-6 md:pl-8 border-l-2 border-dashed border-gray-200/80">
+    <div className="relative pl-8 md:pl-8 border-l-2 border-dashed border-gray-200/80">
       {/* 日期標記 (Day Marker) - 行動端調整位置 */}
-      <div className="absolute -left-[17px] md:-left-[21px] top-0 flex flex-col items-center">
-        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border-4 border-sakura-100 flex items-center justify-center shadow-sm z-10 text-sakura-600 font-black text-xs md:text-sm">
+      <div className="absolute -left-[21px] md:-left-[21px] top-0 flex flex-col items-center">
+        <div className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-white border-4 border-sakura-100 flex items-center justify-center shadow-sm z-10 text-sakura-600 font-black text-sm md:text-sm">
           {dayIndex + 1}
         </div>
       </div>
       
       {/* 標題列 (Header) */}
-      <div className="flex items-center justify-between mb-4 pl-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-base md:text-lg font-bold text-gray-800">{title}</h3>
+      <div className="flex items-center justify-between mb-5 md:mb-4 pl-2">
+        <div className="flex items-center gap-2.5 md:gap-2">
+          <h3 className="text-lg md:text-lg font-bold text-gray-800">{title}</h3>
           {totalPhotos > 0 && (
-            <span className="flex items-center gap-1 px-2 py-0.5 bg-sakura-50 text-sakura-600 text-[10px] md:text-xs rounded-full">
-              <ImageIcon size={12} />
+            <span className="flex items-center gap-1 px-2.5 md:px-2 py-1 md:py-0.5 bg-sakura-50 text-sakura-600 text-xs md:text-xs rounded-full">
+              <ImageIcon size={14} className="md:w-[12px] md:h-[12px]" />
               {totalPhotos}
             </span>
           )}
@@ -86,10 +86,10 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
         <button 
           onClick={() => handleOptimizeDay(dayId)}
           disabled={day.spots.length < 2}
-          className="flex items-center gap-1.5 px-3 md:px-3 py-2 md:py-1.5 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600 hover:text-sakura-600 hover:border-sakura-200 active:bg-sakura-50 active:scale-95 transition-all disabled:opacity-50 min-h-[36px] md:min-h-0"
+          className="flex items-center gap-2 md:gap-1.5 px-4 md:px-3 py-2.5 md:py-1.5 bg-white border border-gray-200 rounded-full text-sm md:text-xs font-medium text-gray-600 hover:text-sakura-600 hover:border-sakura-200 active:bg-sakura-50 active:scale-95 transition-all disabled:opacity-50 min-h-[44px] md:min-h-0"
           aria-label="智慧排序此日景點"
         >
-          <Sparkles size={14} className="md:w-[12px] md:h-[12px]" />
+          <Sparkles size={16} className="md:w-[12px] md:h-[12px]" />
           <span className="hidden xs:inline">智慧排序</span>
           <span className="xs:hidden">排序</span>
         </button>
@@ -98,7 +98,7 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
       {/* 放置區域 (Drop Area) - 含背景圖 */}
       <DroppableContainer 
         id={dayId}
-        className="min-h-[100px] bg-white rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden"
+        className="min-h-[120px] md:min-h-[100px] bg-white rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden"
         active={activeId !== null}
       >
         {/* 背景圖層 */}
@@ -114,7 +114,7 @@ const DayCard: React.FC<DayCardProps> = memo(({ dayId, dayIndex, title }) => {
         )}
         
         {/* 內容層 */}
-        <div className="relative z-10 p-4">
+        <div className="relative z-10 p-5 md:p-4">
           {isOptimizing === dayId && <LoadingOverlay />}
           
           {/* 景點列表 */}
@@ -192,24 +192,24 @@ export const SchedulePanel: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-[#F8F9FA] relative h-full">
       {/* 頂部標題列 (Top Header) */}
-      <div className="h-12 md:h-14 border-b border-gray-200 bg-white/80 backdrop-blur flex items-center px-4 md:px-6 sticky top-0 z-30 justify-between">
-        <h2 className="font-bold text-gray-800 flex items-center gap-2 text-sm md:text-base">
-          <Calendar size={16} className="text-sakura-500 md:w-[18px] md:h-[18px]" />
+      <div className="h-16 md:h-14 border-b border-gray-200 bg-white/80 backdrop-blur flex items-center px-5 md:px-6 sticky top-0 z-30 justify-between">
+        <h2 className="font-bold text-gray-800 flex items-center gap-2.5 md:gap-2 text-base md:text-base">
+          <Calendar size={20} className="text-sakura-500 md:w-[18px] md:h-[18px]" />
           <span className="hidden xs:inline">行程總覽</span>
           <span className="xs:hidden">行程</span>
         </h2>
         
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-3 md:gap-3">
           {/* Undo/Redo 按鈕 - 行動端增大觸控區域 */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 md:gap-1">
             <button
               onClick={handleUndo}
               disabled={!canUndo}
               title={canUndo ? `復原：${lastAction}` : '沒有可復原的操作'}
               aria-label={canUndo ? `復原：${lastAction}` : '沒有可復原的操作'}
-              className="flex items-center justify-center gap-1 px-2.5 md:px-2 py-2 md:py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 active:bg-sakura-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0"
+              className="flex items-center justify-center gap-1 px-3 md:px-2 py-2.5 md:py-1 bg-white border border-gray-200 text-gray-600 rounded-xl md:rounded-lg text-xs md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 active:bg-sakura-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0"
             >
-              <Undo2 size={14} className="md:w-[12px] md:h-[12px]" />
+              <Undo2 size={18} className="md:w-[12px] md:h-[12px]" />
               <span className="hidden sm:inline">復原</span>
             </button>
             <button
@@ -217,16 +217,16 @@ export const SchedulePanel: React.FC = () => {
               disabled={!canRedo}
               title="重做"
               aria-label="重做上一步操作"
-              className="flex items-center justify-center gap-1 px-2.5 md:px-2 py-2 md:py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 active:bg-sakura-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0"
+              className="flex items-center justify-center gap-1 px-3 md:px-2 py-2.5 md:py-1 bg-white border border-gray-200 text-gray-600 rounded-xl md:rounded-lg text-xs md:text-xs font-medium hover:border-sakura-300 hover:text-sakura-600 active:bg-sakura-50 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0"
             >
-              <Redo2 size={14} className="md:w-[12px] md:h-[12px]" />
+              <Redo2 size={18} className="md:w-[12px] md:h-[12px]" />
               <span className="hidden sm:inline">重做</span>
             </button>
           </div>
 
-          <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+          <div className="w-px h-6 md:h-5 bg-gray-200 hidden sm:block" />
           
-          <div className="text-[10px] md:text-xs text-gray-400 hidden xs:block">
+          <div className="text-xs md:text-xs text-gray-400 hidden xs:block">
             {totalScheduledSpots} 個行程點
           </div>
           
@@ -234,24 +234,24 @@ export const SchedulePanel: React.FC = () => {
             <button
               onClick={handleCollectAllSpots}
               aria-label="收回全部景點至待安排清單"
-              className="flex items-center justify-center gap-1 px-2.5 md:px-2 py-2 md:py-1 bg-white border border-gray-200 text-gray-600 rounded-lg text-[10px] md:text-xs font-medium hover:border-amber-300 hover:text-amber-600 active:bg-amber-50 active:scale-95 transition-all min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0"
+              className="flex items-center justify-center gap-1.5 md:gap-1 px-3 md:px-2 py-2.5 md:py-1 bg-white border border-gray-200 text-gray-600 rounded-xl md:rounded-lg text-xs md:text-xs font-medium hover:border-amber-300 hover:text-amber-600 active:bg-amber-50 active:scale-95 transition-all min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0"
               title="收回全部景點至待安排清單"
             >
-              <Undo2 size={14} className="md:w-[12px] md:h-[12px]" />
+              <Undo2 size={18} className="md:w-[12px] md:h-[12px]" />
               <span className="hidden sm:inline">收回全部</span>
             </button>
           )}
           
-          <div className="hidden sm:flex items-center gap-1 text-[10px] md:text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-            <Save size={12} />
+          <div className="hidden sm:flex items-center gap-1 text-xs md:text-xs text-green-600 bg-green-50 px-2.5 md:px-2 py-1.5 md:py-1 rounded-full">
+            <Save size={14} className="md:w-[12px] md:h-[12px]" />
             自動儲存
           </div>
         </div>
       </div>
 
       {/* 行程內容區 (Schedule Content) - 手機版留底部空間 */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-24 md:pb-8">
-        <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
+      <div className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar pb-28 md:pb-8">
+        <div className="max-w-3xl mx-auto space-y-10 md:space-y-12">
           {currentTrip.days.map((day, dayIndex) => (
             <DayCard 
               key={day.id}
