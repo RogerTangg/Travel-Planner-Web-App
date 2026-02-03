@@ -587,10 +587,7 @@ const UnscheduledSpotsList: React.FC = memo(() => {
       {/* 未分組景點列表 */}
       <SortableContext 
         id={UNSCHEDULED_ID}
-        items={[
-          ...unscheduledGroups.map(g => `sortable-group-${g.id}`),
-          ...filteredSpots.map(s => s.id)
-        ]}
+        items={filteredSpots.map(s => s.id)}
         strategy={verticalListSortingStrategy}
       >
         {filteredSpots.length === 0 && unscheduledGroups.length === 0 ? (
