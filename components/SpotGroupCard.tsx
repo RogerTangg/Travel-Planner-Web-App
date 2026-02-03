@@ -1,19 +1,24 @@
 /**
  * 景點集合卡片元件 (Spot Group Card Component)
  * 
- * 採用虛線邊框卡片樣式（類似快速模組），支援：
+ * 採用虛線邊框卡片樣式，支援：
+ * - 整體拖曳到日行程（Sortable）
  * - 接收拖曳的景點（Droppable）
+ * - 收合/展開功能
  * - 集合內景點可拖曳出去
  * - 集合編輯與刪除
- * - 每個景點可單獨編輯
  * 
  * @module components/SpotGroupCard
  */
 
 import React, { useState, memo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import {
+  ChevronDown,
+  ChevronRight,
   Edit3,
   Trash2,
   X,
@@ -59,6 +64,7 @@ export const SpotGroupCard: React.FC<SpotGroupCardProps> = memo(({
   
   const updateSpotGroup = useTripStore(state => state.updateSpotGroup);
   const deleteSpotGroup = useTripStore(state => state.deleteSpotGroup);
+  const toggleGroupCollapsed = useTripStore(state => state.toggleGroupCollapsed);
   const removeSpotsFromGroup = useTripStore(state => state.removeSpotsFromGroup);
   const setSelectedSpot = useUIStore(state => state.setSelectedSpot);
   const showConfirm = useUIStore(state => state.showConfirm);
@@ -102,7 +108,7 @@ export const SpotGroupCard: React.FC<SpotGroupCardProps> = memo(({
   };
 
   // 設定 Droppable，讓集合可以接收拖曳的景點
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `group-${group.id}`,
     data: {
       type: 'group',
@@ -110,17 +116,53 @@ export const SpotGroupCard: React.FC<SpotGroupCardProps> = memo(({
     }
   });
 
+  // 設定 Sortable，讓集合可以整體拖曳
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({
+    id: `sortable-group-${group.id}`,
+    data: {
+      type: 'group',
+      groupId: group.id,
+      spotIds: group.spotIds
+    }
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  // 合併 refs
+  const setRefs = (node: HTMLDivElement | null) => {
+    setDroppableRef(node);
+    setSortableRef(node);
+  };
+
   const groupColor = group.color || GROUP_COLORS[0];
+
+  // 合併 style，包含拖曳和 hover 狀態的邊框顏色
+  const combinedStyle = {
+    ...style,
+    borderColor: isOver || isDragging ? groupColor : undefined
+  };
 
   return (
     <div 
-      ref={setNodeRef}
+      ref={setRefs}
+      style={combinedStyle}
       className={`mb-3 rounded-xl border-2 border-dashed overflow-hidden transition-all bg-white ${
         isOver 
           ? 'border-solid shadow-md scale-[1.01]' 
           : 'border-gray-200 hover:border-gray-300'
-      }`}
-      style={isOver ? { borderColor: groupColor } : {}}
+      } ${isDragging ? 'shadow-lg z-50 border-solid' : ''}`}
+      {...attributes}
     >
       {/* 集合標題列 */}
       <div 
@@ -130,12 +172,32 @@ export const SpotGroupCard: React.FC<SpotGroupCardProps> = memo(({
           borderColor: `${groupColor}30`
         }}
       >
+        {/* 拖曳把手 */}
+        <div 
+          className="text-gray-400 cursor-grab hover:text-gray-600 active:cursor-grabbing shrink-0"
+          {...listeners}
+        >
+          <GripVertical size={14} />
+        </div>
+
+        {/* 展開/收合按鈕 */}
+        <button
+          onClick={() => toggleGroupCollapsed(group.id)}
+          className="p-0.5 hover:bg-white/50 rounded transition-colors shrink-0"
+        >
+          {group.collapsed ? (
+            <ChevronRight size={16} style={{ color: groupColor }} />
+          ) : (
+            <ChevronDown size={16} style={{ color: groupColor }} />
+          )}
+        </button>
+
         {/* 集合圖示 */}
         <div 
-          className="flex items-center justify-center w-6 h-6 rounded-md shrink-0"
+          className="flex items-center justify-center w-5 h-5 rounded-md shrink-0"
           style={{ backgroundColor: `${groupColor}20` }}
         >
-          <Layers size={14} style={{ color: groupColor }} />
+          <Layers size={12} style={{ color: groupColor }} />
         </div>
 
         {/* 編輯模式 */}
@@ -228,59 +290,81 @@ export const SpotGroupCard: React.FC<SpotGroupCardProps> = memo(({
         )}
       </div>
 
-      {/* 集合內的景點列表 */}
-      <div 
-        className={`p-2 transition-colors ${
-          isOver ? 'bg-gray-50/80' : 'bg-white'
-        }`}
-      >
-        {spots.length === 0 ? (
-          <div 
-            className={`flex flex-col items-center justify-center text-xs py-6 rounded-lg border-2 border-dashed transition-all ${
-              isOver 
-                ? 'border-solid bg-white/80' 
-                : 'border-gray-200 text-gray-400'
-            }`}
-            style={isOver ? { borderColor: groupColor, color: groupColor } : {}}
-          >
-            <GripVertical size={20} className="mb-1 opacity-40" />
-            <span>{isOver ? '放開以加入集合' : '拖曳景點至此處'}</span>
-          </div>
-        ) : (
-          <SortableContext
-            items={spots.map(s => s.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="space-y-2">
-              {spots.map(spot => (
-                <SpotCard
-                  key={spot.id}
-                  spot={spot}
-                  onDelete={(id) => {
-                    // 先從集合移除，再刪除景點
-                    handleRemoveFromGroup(id);
-                    onDeleteSpot(id);
-                  }}
-                  onClick={setSelectedSpot}
-                  onUpdate={onUpdateSpot}
-                  onDuplicate={onDuplicateSpot}
-                  compact={true}
-                />
-              ))}
+      {/* 集合內的景點列表 - 展開時顯示 */}
+      {!group.collapsed && (
+        <div 
+          className={`p-2 transition-colors ${
+            isOver ? 'bg-gray-50/80' : 'bg-white'
+          }`}
+        >
+          {spots.length === 0 ? (
+            <div 
+              className={`flex flex-col items-center justify-center text-xs py-6 rounded-lg border-2 border-dashed transition-all ${
+                isOver 
+                  ? 'border-solid bg-white/80' 
+                  : 'border-gray-200 text-gray-400'
+              }`}
+              style={isOver ? { borderColor: groupColor, color: groupColor } : {}}
+            >
+              <GripVertical size={20} className="mb-1 opacity-40" />
+              <span>{isOver ? '放開以加入集合' : '拖曳景點至此處'}</span>
             </div>
-            
-            {/* 拖曳時的提示 */}
-            {isOver && (
-              <div 
-                className="mt-2 flex items-center justify-center text-xs py-2 rounded-lg border-2 border-dashed transition-all border-solid bg-white/80"
-                style={{ borderColor: groupColor, color: groupColor }}
-              >
-                <span>放開以加入集合</span>
+          ) : (
+            <SortableContext
+              items={spots.map(s => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {spots.map(spot => (
+                  <SpotCard
+                    key={spot.id}
+                    spot={spot}
+                    onDelete={(id) => {
+                      handleRemoveFromGroup(id);
+                      onDeleteSpot(id);
+                    }}
+                    onClick={setSelectedSpot}
+                    onUpdate={onUpdateSpot}
+                    onDuplicate={onDuplicateSpot}
+                    compact={true}
+                  />
+                ))}
               </div>
-            )}
-          </SortableContext>
-        )}
-      </div>
+              
+              {/* 拖曳時的提示 */}
+              {isOver && (
+                <div 
+                  className="mt-2 flex items-center justify-center text-xs py-2 rounded-lg border-2 border-dashed transition-all border-solid bg-white/80"
+                  style={{ borderColor: groupColor, color: groupColor }}
+                >
+                  <span>放開以加入集合</span>
+                </div>
+              )}
+            </SortableContext>
+          )}
+        </div>
+      )}
+
+      {/* 收合時顯示預覽 */}
+      {group.collapsed && spots.length > 0 && (
+        <div 
+          className="px-3 py-1.5 bg-white/50 text-xs text-gray-500 truncate"
+          style={{ borderTop: `1px solid ${groupColor}20` }}
+        >
+          {spots.slice(0, 2).map(s => s.name).join('、')}
+          {spots.length > 2 && `...等 ${spots.length} 個`}
+        </div>
+      )}
+
+      {/* 收合時也顯示拖曳提示 */}
+      {group.collapsed && isOver && (
+        <div 
+          className="px-3 py-2 flex items-center justify-center text-xs bg-white/80"
+          style={{ color: groupColor }}
+        >
+          <span>放開以加入集合</span>
+        </div>
+      )}
     </div>
   );
 });
